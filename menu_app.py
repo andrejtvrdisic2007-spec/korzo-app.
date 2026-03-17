@@ -1,30 +1,38 @@
 import streamlit as st
 import os
 import time
-import google.generativeai as genai  # Промењена библиотека
+import google.generativeai as genai
 from supabase import create_client, Client
 
 # ==========================================
 # 1. ПОДЕШАВАЊЕ КЉУЧЕВА
 # ==========================================
-# Унеси свој API кључ испод:
 GEMINI_KEY = "AIzaSyBnOVsjyjJEnConG1mf7MNfHUNECktqUUY"
-
 SUPABASE_URL = "https://mszsrorxwmkopoyvsbpw.supabase.co"
 SUPABASE_KEY = "sb_publishable_mYfAEgWeQqUcjTIKqORx5w_A4hSqIc_"
 
-# Повезивање са АИ моделом
-genai.configure(api_key=GEMINI_KEY)
-# Покушавамо са најстабилнијим називом модела
-model_ai = genai.GenerativeModel('gemini-1.5-flash')
-
-# Повезивање са Супабејс базом
+# Повезивање са Супабејс
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# ПОДЕШАВАЊЕ АИ (Флексибилно учитавање модела)
+genai.configure(api_key=GEMINI_KEY)
+
+def ucitaj_ai_model():
+    # Пробамо неколико назива модела, један МОРА да ради
+    for model_name in ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro']:
+        try:
+            m = genai.GenerativeModel(model_name)
+            return m
+        except:
+            continue
+    return None
+
+model_ai = ucitaj_ai_model()
 
 st.set_page_config(page_title="Корзо Паметни Систем", page_icon="🍽️", layout="wide")
 
 # ==========================================
-# 2. МЕНИ БАЗА ПОДАТАКА
+# 2. КОМПЛЕТНА БАЗА ПОДАТАКА (СВИХ 21 СТАВКА)
 # ==========================================
 menu_database = {
     "Korzo doručak": {"category": "Doručak", "price": 630.00, "calories": 750, "protein": 35, "description": "2 jaja, sudžuk, goveđa pršuta, ajvar, sir", "image": "slike/korzo_dorucak.jpg"},
@@ -35,19 +43,19 @@ menu_database = {
     "Juneći ćevapi 350g": {"category": "Jela sa roštilja", "price": 960.00, "calories": 700, "protein": 50, "description": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
     "Bagrem piletina 350g": {"category": "Jela sa roštilja", "price": 900.00, "calories": 500, "protein": 60, "description": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
     "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "protein": 30, "description": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
-    "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "protein": 20, "description": "Domaći sušeni sudžuk", "image": "slike/suseni_sudzuk.jpg"},
-    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "protein": 20, "description": "Domaћи beli sir", "image": "slike/sir.jpg"},
-    "Mađarski juneći gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "protein": 40, "description": "Bogati mađarski gulaš od junetine", "image": "slike/madjarski_gulas.jpg"},
-    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "protein": 30, "description": "Domaће ćufte u кремaстом пире кропмпиру", "image": "slike/cufte_u_pireu.jpg"},
-    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "description": "Zapečeni пасуљ са sudžukom", "image": "slike/prebranac_sudzuk.jpg"},
+    "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "protein": 20, "description": "Domaћи сушени суџук", "image": "slike/suseni_sudzuk.jpg"},
+    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "protein": 20, "description": "Domaћи бели сир", "image": "slike/sir.jpg"},
+    "Mađarski juneći gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "protein": 40, "description": "Bogati mađarski gulaš од јунетине", "image": "slike/madjarski_gulas.jpg"},
+    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "protein": 30, "description": "Домаће ћуфте у кремастом пире кромпиру", "image": "slike/cufte_u_pireu.jpg"},
+    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "description": "Запечени пасуљ са суџуком", "image": "slike/prebranac_sudzuk.jpg"},
     "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "protein": 18, "description": "Традиционални посни пребранац", "image": "slike/prebranac.jpg"},
-    "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "protein": 8, "description": "Paradajz, krastavac, luk, paprika, sir", "image": "slike/sopska_salata.jpg"},
-    "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "protein": 3, "description": "Paradajz, krastavac, luk, ljuta paprika", "image": "slike/srpska_salata.jpg"},
-    "Kupus salata 300g": {"category": "Salate", "price": 330.00, "calories": 80, "protein": 2, "description": "Sveжа купус салата", "image": "slike/kupus_salata.jpg"},
+    "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "protein": 8, "description": "Парадајз, краставац, лук, паприка, сир", "image": "slike/sopska_salata.jpg"},
+    "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "protein": 3, "description": "Парадајз, краставац, лук, љута паприка", "image": "slike/srpska_salata.jpg"},
+    "Kupus salata 300g": {"category": "Salate", "price": 330.00, "calories": 80, "protein": 2, "description": "Свежа купус салата", "image": "slike/kupus_salata.jpg"},
     "Ljuta paprika u ulju 1 komad": {"category": "Salate", "price": 150.00, "calories": 50, "protein": 0, "description": "Печена љута паприка", "image": "slike/ljuta_paprika.jpg"},
-    "Lepinja 1 komad": {"category": "Dodaci", "price": 120.00, "calories": 250, "protein": 7, "description": "Sveжа домаћа лепиња", "image": "slike/lepinja.jpg"},
-    "Pomfrit 150g": {"category": "Dodaci", "price": 300.00, "calories": 450, "protein": 4, "description": "Hrskavi prženi krompirići", "image": "slike/pomfrit.jpg"},
-    "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "description": "Domaћи зрели кајмак", "image": "slike/kugla_kajmaka.jpg"}
+    "Lepinja 1 komad": {"category": "Dodaci", "price": 120.00, "calories": 250, "protein": 7, "description": "Свежа домаћа лепиња", "image": "slike/lepinja.jpg"},
+    "Pomfrit 150g": {"category": "Dodaci", "price": 300.00, "calories": 450, "protein": 4, "description": "Хрскави пржени кромпирићи", "image": "slike/pomfrit.jpg"},
+    "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "description": "Домаћи зрели кајмак", "image": "slike/kugla_kajmaka.jpg"}
 }
 
 # --- ФУНКЦИЈЕ ЗА БАЗУ ---
@@ -65,8 +73,7 @@ def snimi_u_bazu(sto, podaci):
             supabase.table("porudzbine").update(nova_data).eq("sto", sto).execute()
         else:
             supabase.table("porudzbine").insert(nova_data).execute()
-    except Exception as e:
-        st.error(f"Грешка са базом: {e}")
+    except Exception as e: st.error(f"Грешка са базом: {e}")
 
 def obrisi_sto(sto):
     supabase.table("porudzbine").delete().eq("sto", sto).execute()
@@ -79,9 +86,9 @@ def prikazi_sliku(putanja):
 # ==========================================
 def prikazi_konobara():
     st.title("👨‍🍳 Контролни Панел - Корзо")
-    st.info("Ажурирање на 10с.")
+    st.info("Аутоматско освежавање: 10с.")
     baza = ucitaj_iz_baze()
-    if not baza: st.success("Нема поруџбина.")
+    if not baza: st.success("Тренутно нема поруџбина.")
     else:
         cols = st.columns(3)
         for i, (sto, podaci) in enumerate(baza.items()):
@@ -96,8 +103,8 @@ def prikazi_konobara():
                             cena = menu_database[jelo]["price"] * kolicina
                             ukupno += cena
                             st.write(f"**{kolicina}x** {jelo}")
-                    st.metric("Укупно:", f"{ukupno:.2f} RSD")
-                    if st.button(f"✅ Готово", key=f"del_{sto}"):
+                    st.metric("За наплату:", f"{ukupno:.2f} RSD")
+                    if st.button("✅ Готово", key=f"del_{sto}"):
                         obrisi_sto(sto)
                         st.rerun()
     time.sleep(10)
@@ -108,7 +115,7 @@ def prikazi_konobara():
 # ==========================================
 def prikazi_gosta(sto):
     baza = ucitaj_iz_baze()
-    moj_sto = baza.get(sto, {"stavke": {}, "zove_konobara": False, "trazi_racun": False, "nacin_placanja": ""})
+    moj_sto = baza.get(sto, {"stavke": {}, "zove_konobara": False, "trazi_racun": False})
 
     st.sidebar.title(f"📍 Сто: {sto}")
     if st.sidebar.button("🙋‍♂️ ПОЗОВИ КОНОБАРА", type="primary", width='stretch'):
@@ -121,7 +128,7 @@ def prikazi_gosta(sto):
     for jelo, qty in moj_sto.get("stavke", {}).items():
         if jelo in menu_database:
             ukupno += menu_database[jelo]["price"] * qty
-            st.sidebar.write(f"{qty}x {jelo}")
+            st.sidebar.write(f"**{qty}x** {jelo}")
     st.sidebar.metric("Укупно:", f"{ukupno:.2f} RSD")
 
     st.title("🍽️ Корзо Мени")
@@ -130,31 +137,36 @@ def prikazi_gosta(sto):
 
     for i, tab in enumerate(tabs):
         with tab:
-            items = {k: v for k, v in menu_database.items() if v["category"] == kategorije[i]}
+            kat = kategorije[i]
+            jela_kat = {k: v for k, v in menu_database.items() if v["category"] == kat}
             cols = st.columns(2)
-            for j, (ime, info) in enumerate(items.items()):
+            for j, (ime, info) in enumerate(jela_kat.items()):
                 with cols[j % 2]:
                     with st.container(border=True):
                         st.image(prikazi_sliku(info["image"]), width='stretch')
                         st.subheader(ime)
-                        st.write(f"**{info['price']:.2f} RSD**")
+                        st.write(f"Цена: **{info['price']:.2f} RSD**")
+                        st.caption(info['description'])
                         if st.button(f"🛒 Додај", key=f"add_{ime}"):
                             moj_sto["stavke"][ime] = moj_sto["stavke"].get(ime, 0) + 1
                             snimi_u_bazu(sto, moj_sto)
                             st.rerun()
 
-    # --- ПОПРАВЉЕНИ АИ ДЕО ---
+    # АИ ЧАТБОТ
     st.divider()
     st.subheader("🤖 Питајте AI конобара")
     upit = st.chat_input("Питајте нешто...")
     if upit:
         with st.chat_message("user"): st.markdown(upit)
         with st.chat_message("assistant"):
-            try:
-                odgovor = model_ai.generate_content(f"Ти си конобар у Корзоу. Мени: {list(menu_database.keys())}. Гост пита: {upit}")
-                st.markdown(odgovor.text)
-            except Exception as e:
-                st.error(f"АИ Грешка: {e}")
+            if model_ai:
+                try:
+                    odgovor = model_ai.generate_content(f"Ти си конобар у Корзоу. Мени: {list(menu_database.keys())}. Питање: {upit}")
+                    st.markdown(odgovor.text)
+                except Exception as e:
+                    st.error(f"Грешка: {e}")
+            else:
+                st.error("АИ модел није могао бити учитан.")
 
 # ==========================================
 # 5. ГЛАВНИ РУТЕР
