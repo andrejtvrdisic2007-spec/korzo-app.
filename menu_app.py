@@ -20,31 +20,50 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # Подешавање изгледа странице
 st.set_page_config(page_title="Корзо | Дигитални Мени", page_icon="🍽️", layout="wide", initial_sidebar_state="expanded")
 
+# --- МИНИМАЛИСТИЧКИ МОБИЛНИ ДИЗАЈН (CSS) ---
+st.markdown("""
+<style>
+    /* Смањење празног простора на врху екрана */
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+    }
+    /* Чистија дугмад */
+    div.stButton > button {
+        border-radius: 10px;
+        font-weight: bold;
+    }
+    /* Скривање Streamlit менија на врху (за госте) */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
 # ==========================================
-# 2. МЕНИ БАЗА (СВИХ 21 СТАВКА)
+# 2. МЕНИ БАЗА (СА НОВИМ НУТРИТИВНИМ ВРЕДНОСТИМА)
 # ==========================================
 menu_database = {
-    "Korzo doručak": {"category": "Doručak", "price": 630.00, "calories": 750, "desc": "2 jaja, sudžuk, goveđa pršuta, ajvar, sir", "image": "slike/korzo_dorucak.jpg"},
-    "Kajgana": {"category": "Doručak", "price": 350.00, "calories": 300, "desc": "Domaća kajgana", "image": "slike/kajgana.jpg"},
-    "Kačamak": {"category": "Doručak", "price": 300.00, "calories": 400, "desc": "Tradicionalni domaći kačamak", "image": "slike/kacamak.jpg"},
-    "Juneća čorba 350g": {"category": "Toplo predjelo", "price": 480.00, "calories": 250, "desc": "Domaća topla juneća čorba", "image": "slike/juneca_corba.jpg"},
-    "Juneће ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
-    "Juneћи ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
-    "Bagrem piletina 350g": {"category": "Roštilj", "price": 900.00, "calories": 500, "desc": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
-    "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "desc": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
-    "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "desc": "Domaћи сушени суџук", "image": "slike/suseni_sudzuk.jpg"},
-    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "desc": "Domaћи бели сир", "image": "slike/sir.jpg"},
-    "Mađarski juneći gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "desc": "Bogati mađarski gulaš od junetine", "image": "slike/madjarski_gulas.jpg"},
-    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "desc": "Domaће ћуфте у кремастом пиреу", "image": "slike/cufte_u_pireu.jpg"},
-    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "desc": "Zapečeni pasulj са суџуком", "image": "slike/prebranac_sudzuk.jpg"},
-    "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "desc": "Tradicionalni posni prebranac", "image": "slike/prebranac.jpg"},
-    "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "desc": "Paradajz, krastavac, luk, paprika, sir", "image": "slike/sopska_salata.jpg"},
-    "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "desc": "Paradajz, krastavac, luk, ljuta paprika", "image": "slike/srpska_salata.jpg"},
-    "Kupus salata 300g": {"category": "Salate", "price": 330.00, "calories": 80, "desc": "Sveža kupus salata", "image": "slike/kupus_salata.jpg"},
-    "Ljuta paprika u ulju 1 komad": {"category": "Salate", "price": 150.00, "calories": 50, "desc": "Pečena ljuta paprika", "image": "slike/ljuta_paprika.jpg"},
-    "Lepinja 1 komad": {"category": "Dodaci", "price": 120.00, "calories": 250, "desc": "Sveža domaća lepinja", "image": "slike/lepinja.jpg"},
-    "Pomfrit 150g": {"category": "Dodaci", "price": 300.00, "calories": 450, "desc": "Hrskavi prženi krompirići", "image": "slike/pomfrit.jpg"},
-    "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "desc": "Domaći zreli kajmak", "image": "slike/kugla_kajmaka.jpg"}
+    "Korzo doručak": {"category": "Doručak", "price": 630.00, "calories": 750, "protein": 35, "carbs": 45, "sugar": 5, "fiber": 4, "desc": "2 jaja, sudžuk, goveđa pršuta, ajvar, sir", "image": "slike/korzo_dorucak.jpg"},
+    "Kajgana": {"category": "Doručak", "price": 350.00, "calories": 300, "protein": 20, "carbs": 2, "sugar": 1, "fiber": 0, "desc": "Domaća kajgana", "image": "slike/kajgana.jpg"},
+    "Kačamak": {"category": "Doručak", "price": 300.00, "calories": 400, "protein": 8, "carbs": 55, "sugar": 2, "fiber": 3, "desc": "Tradicionalni domaći kačamak", "image": "slike/kacamak.jpg"},
+    "Juneća čorba 350g": {"category": "Toplo predjelo", "price": 480.00, "calories": 250, "protein": 18, "carbs": 15, "sugar": 3, "fiber": 2, "desc": "Domaća topla juneća čorba", "image": "slike/juneca_corba.jpg"},
+    "Juneće ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "protein": 45, "carbs": 10, "sugar": 2, "fiber": 1, "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
+    "Juneći ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "protein": 50, "carbs": 5, "sugar": 1, "fiber": 0, "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
+    "Bagrem piletina 350g": {"category": "Roštilj", "price": 900.00, "calories": 500, "protein": 60, "carbs": 8, "sugar": 2, "fiber": 1, "desc": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
+    "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "protein": 30, "carbs": 0, "sugar": 0, "fiber": 0, "desc": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
+    "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "protein": 20, "carbs": 2, "sugar": 0, "fiber": 0, "desc": "Domaći sušeni sudžuk", "image": "slike/suseni_sudzuk.jpg"},
+    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "protein": 20, "carbs": 3, "sugar": 3, "fiber": 0, "desc": "Domaći beli sir", "image": "slike/sir.jpg"},
+    "Mađarski juneći gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "protein": 40, "carbs": 30, "sugar": 6, "fiber": 4, "desc": "Bogati mađarski gulaš od junetine", "image": "slike/madjarski_gulas.jpg"},
+    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "protein": 30, "carbs": 45, "sugar": 4, "fiber": 3, "desc": "Domaće ćufte u kremastom pireu", "image": "slike/cufte_u_pireu.jpg"},
+    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "carbs": 50, "sugar": 5, "fiber": 12, "desc": "Zapečeni pasulj sa sudžukom", "image": "slike/prebranac_sudzuk.jpg"},
+    "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "protein": 18, "carbs": 55, "sugar": 4, "fiber": 14, "desc": "Tradicionalni posni prebranac", "image": "slike/prebranac.jpg"},
+    "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "protein": 8, "carbs": 12, "sugar": 6, "fiber": 4, "desc": "Paradajz, krastavac, luk, paprika, sir", "image": "slike/sopska_salata.jpg"},
+    "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "protein": 3, "carbs": 15, "sugar": 8, "fiber": 5, "desc": "Paradajz, krastavac, luk, ljuta paprika", "image": "slike/srpska_salata.jpg"},
+    "Kupus salata 300g": {"category": "Salate", "price": 330.00, "calories": 80, "protein": 2, "carbs": 10, "sugar": 5, "fiber": 4, "desc": "Sveža kupus salata", "image": "slike/kupus_salata.jpg"},
+    "Ljuta paprika u ulju 1 komad": {"category": "Salate", "price": 150.00, "calories": 50, "protein": 0, "carbs": 3, "sugar": 1, "fiber": 1, "desc": "Pečena ljuta paprika", "image": "slike/ljuta_paprika.jpg"},
+    "Lepinja 1 komad": {"category": "Dodaci", "price": 120.00, "calories": 250, "protein": 7, "carbs": 50, "sugar": 2, "fiber": 2, "desc": "Sveža domaća lepinja", "image": "slike/lepinja.jpg"},
+    "Pomfrit 150g": {"category": "Dodaci", "price": 300.00, "calories": 450, "protein": 4, "carbs": 60, "sugar": 1, "fiber": 5, "desc": "Hrskavi prženi krompirići", "image": "slike/pomfrit.jpg"},
+    "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "carbs": 2, "sugar": 1, "fiber": 0, "desc": "Domaći zreli kajmak", "image": "slike/kugla_kajmaka.jpg"}
 }
 
 # --- ФУНКЦИЈЕ ЗА БАЗУ ---
@@ -121,14 +140,21 @@ def prikazi_gosta(sto):
 
     # --- САЈДБАР (МОЈ РАЧУН И ПОЗИВИ) ---
     with st.sidebar:
-        st.markdown(f"<h2 style='text-align: center;'>📍 Ваш Сто: {sto}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center;'>📍 Ваш Сто: {sto}</h3>", unsafe_allow_html=True)
         st.divider()
         
-        # Дугме за позив
-        if st.button("🙋‍♂️ ПОЗОВИ КОНОБАРА", type="primary", use_container_width=True):
-            moj_sto["zove_konobara"] = True
-            snimi_u_bazu(sto, moj_sto)
-            st.success("Особље је обавештено и стиже ускоро!")
+        # --- ЛОГИКА ЗА ПОЗИВ/ОТКАЗИВАЊЕ КОНОБАРА ---
+        if moj_sto["zove_konobara"]:
+            if st.button("❌ ОТКАЖИ ПОЗИВ", type="secondary", use_container_width=True):
+                moj_sto["zove_konobara"] = False
+                snimi_u_bazu(sto, moj_sto)
+                st.rerun()
+            st.warning("Конобар је позван и стиже ускоро.")
+        else:
+            if st.button("🙋‍♂️ ПОЗОВИ КОНОБАРА", type="primary", use_container_width=True):
+                moj_sto["zove_konobara"] = True
+                snimi_u_bazu(sto, moj_sto)
+                st.success("Особље је обавештено!")
 
         st.divider()
         st.markdown("### 🛒 Ваша Корпа")
@@ -154,9 +180,8 @@ def prikazi_gosta(sto):
                 st.warning("Конобар долази са Вашим рачуном!")
 
     # --- ГЛАВНИ ПРИКАЗ МЕНИЈА ---
-    st.markdown("<h1 style='text-align: center;'>🍽️ Добродошли у Корзо</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: gray;'>Изаберите категорију и уживајте у нашој храни.</p>", unsafe_allow_html=True)
-    st.write("")
+    st.markdown("<h2 style='text-align: center; margin-bottom: 0;'>🍽️ Добродошли у Корзо</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray; font-size: 14px;'>Изаберите категорију и уживајте у нашој храни.</p>", unsafe_allow_html=True)
 
     kategorije = sorted(list(set([info["category"] for info in menu_database.values()])))
     tabs = st.tabs(kategorije)
@@ -165,68 +190,92 @@ def prikazi_gosta(sto):
         with tab:
             kat = kategorije[i]
             jela = {k: v for k, v in menu_database.items() if v["category"] == kat}
+            # На мобилном се колоне аутоматски слажу једна испод друге
             cols = st.columns(2)
             for j, (ime, info) in enumerate(jela.items()):
                 with cols[j % 2]:
                     with st.container(border=True):
                         st.image(prikazi_sliku(info["image"]), width='stretch')
                         
-                        st.markdown(f"### {ime}")
-                        st.markdown(f"**{info['price']:.2f} RSD**")
+                        st.markdown(f"#### {ime}")
+                        st.markdown(f"<h5 style='color: #E63946; margin-top: -10px;'>{info['price']:.2f} RSD</h5>", unsafe_allow_html=True)
                         st.caption(info['desc'])
                         
+                        # ДЕТАЉНЕ НУТРИТИВНЕ ВРЕДНОСТИ
                         with st.expander("ℹ️ Нутритивне вредности"):
-                            st.write(f"🔥 Калорије: **{info['calories']} kcal**")
-                            if "protein" in info:
-                                st.write(f"🥩 Протеини: **{info['protein']}g**")
+                            st.write(f"🔥 **Калорије:** {info['calories']} kcal")
+                            st.write(f"🥩 **Протеини:** {info['protein']} g")
+                            st.write(f"🍞 **Угљ. хидрати:** {info['carbs']} g")
+                            st.write(f"🍬 **Шећери:** {info['sugar']} g")
+                            st.write(f"🌾 **Влакна:** {info['fiber']} g")
 
-                        if st.button(f"➕ Додај у корпу", key=f"add_{ime}", use_container_width=True):
+                        if st.button(f"➕ Додај", key=f"add_{ime}", use_container_width=True):
                             moj_sto["stavke"][ime] = moj_sto["stavke"].get(ime, 0) + 1
                             snimi_u_bazu(sto, moj_sto)
                             st.rerun()
 
-    # --- АУТОМАТСКИ АИ ЧАТБОТ (САМОЛЕЧЕЋИ) ---
+    # --- ПАМЕТНИ АИ ЧАТБОТ СА МЕМОРИЈОМ ---
     st.divider()
-    st.markdown("### 🤖 Имате питање? Питајте нашег АИ конобара!")
-    upit = st.chat_input("Питај ме нешто о менију (нпр. 'Шта препоручујеш за доручак?')...")
+    st.markdown("### 🤖 Питајте нашег АИ конобара!")
+    
+    # Иницијализација меморије за чет
+    if "chat_history" not in st.session_state:
+        st.session_state.chat_history = []
+
+    # Приказ претходних порука
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    upit = st.chat_input("Питај ме нешто о менију...")
     
     if upit:
-        with st.chat_message("user"): st.markdown(upit)
+        # Додај корисниково питање у меморију и прикажи
+        st.session_state.chat_history.append({"role": "user", "content": upit})
+        with st.chat_message("user"):
+            st.markdown(upit)
+            
         with st.chat_message("assistant"):
             try:
-                # 1. Прво аутоматски питамо Гугл шта је доступно за твој кључ
+                # 1. Скенирање доступних модела
                 get_models_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_KEY}"
                 models_response = requests.get(get_models_url)
                 
                 if models_response.status_code == 200:
                     models_data = models_response.json()
                     radni_model = None
-                    
-                    # Тражимо први модел који ради генерацију текста
                     for m in models_data.get('models', []):
                         if 'generateContent' in m.get('supportedGenerationMethods', []):
-                            radni_model = m['name'] # Ово ће бити тачан назив (нпр. models/gemini-1.0-pro)
+                            radni_model = m['name']
                             break
                     
-                    if not radni_model:
-                        st.error("🚨 Твој АПИ кључ нема приступ ниједном AI моделу. Мораш генерисати нови кључ.")
-                    else:
-                        # 2. Сада сигурно гађамо модел за који знамо да постоји
+                    if radni_model:
+                        # 2. Форматирање историје за Гугл АПИ
+                        api_contents = []
+                        for msg in st.session_state.chat_history:
+                            role = "user" if msg["role"] == "user" else "model"
+                            api_contents.append({"role": role, "parts": [{"text": msg["content"]}]})
+                            
                         url = f"https://generativelanguage.googleapis.com/v1beta/{radni_model}:generateContent?key={GEMINI_KEY}"
+                        
                         payload = {
-                            "contents": [{"parts": [{"text": f"Ти си љубазни конобар у ресторану Корзо у Крагујевцу. Наш мени: {list(menu_database.keys())}. Одговори кратко, љубазно и на српском језику. Питање госта: {upit}"}]}]
+                            "systemInstruction": {"parts": [{"text": f"Ти си љубазни конобар у ресторану Корзо. Мени: {list(menu_database.keys())}. Одговарај кратко и природно."}]},
+                            "contents": api_contents
                         }
+                        
                         ai_response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
                         
                         if ai_response.status_code == 200:
                             odgovor = ai_response.json()['candidates'][0]['content']['parts'][0]['text']
                             st.markdown(odgovor)
+                            # Сачувај одговор у меморију
+                            st.session_state.chat_history.append({"role": "assistant", "content": odgovor})
                         else:
-                            st.error(f"🚨 Грешка при генерацији: {ai_response.text}")
+                            st.error(f"Грешка: {ai_response.text}")
                 else:
-                    st.error(f"🚨 Нисам могао да учитам моделе. Провери да ли је кључ исправан: {models_response.text}")
+                    st.error("АИ систем тренутно није доступан.")
             except Exception as e:
-                st.error(f"Системска грешка: {e}")
+                st.error("Дошло је до грешке при повезивању.")
 
 # ==========================================
 # 5. ГЛАВНИ РУТЕР
@@ -237,7 +286,7 @@ if "konobar" in params:
 elif "sto" in params: 
     prikazi_gosta(params["sto"])
 else:
-    st.markdown("<h1 style='text-align: center;'>Добродошли у Корзо Систем 🍽️</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center;'>Добродошли у Корзо 🍽️</h2>", unsafe_allow_html=True)
     st.markdown("---")
     
     col1, col2 = st.columns(2)
@@ -247,9 +296,6 @@ else:
             st.write("Скенирајте QR код на столу или уђите овде за тест.")
             if st.button("Уђи као Сто 1", use_container_width=True):
                 st.query_params["sto"] = "1"
-                st.rerun()
-            if st.button("Уђи као Сто 2", use_container_width=True):
-                st.query_params["sto"] = "2"
                 st.rerun()
                 
     with col2:
