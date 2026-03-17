@@ -186,7 +186,7 @@ def prikazi_gosta(sto):
                             snimi_u_bazu(sto, moj_sto)
                             st.rerun()
 
-    # --- ДИРЕКТАН АИ ПОЗИВ ---
+    st.# --- ДИРЕКТАН АИ ПОЗИВ ---
     st.divider()
     st.markdown("### 🤖 Имате питање? Питајте нашег АИ конобара!")
     upit = st.chat_input("Питај ме нешто о менију (нпр. 'Шта препоручујеш за доручак?')...")
@@ -195,7 +195,8 @@ def prikazi_gosta(sto):
         with st.chat_message("user"): st.markdown(upit)
         with st.chat_message("assistant"):
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
+                # Вратили смо на најстабилнији 1.5-flash модел
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
                 payload = {
                     "contents": [{"parts": [{"text": f"Ти си љубазни конобар у ресторану Корзо у Крагујевцу. Наш мени: {list(menu_database.keys())}. Одговори кратко, љубазно и на српском језику. Питање госта: {upit}"}]}]
                 }
@@ -205,9 +206,10 @@ def prikazi_gosta(sto):
                     odgovor = response.json()['candidates'][0]['content']['parts'][0]['text']
                     st.markdown(odgovor)
                 else:
-                    st.error("Извините, тренутно сам заузет. Позовите правог конобара преко дугмета лево!")
+                    # САДА ЋЕМО ВИДЕТИ ТАЧНУ ГРЕШКУ ОД ГУГЛА
+                    st.error(f"🚨 Гугл грешка: {response.status_code} - {response.text}")
             except Exception as e:
-                st.error("Систем за ћаскање тренутно није доступан.")
+                st.error(f"Системска грешка: {e}")
 
 # ==========================================
 # 5. ГЛАВНИ РУТЕР
