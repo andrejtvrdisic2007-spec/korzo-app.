@@ -8,7 +8,7 @@ from supabase import create_client, Client
 # 1. ПОДЕШАВАЊЕ КЉУЧЕВА (УНЕСИ СВОЈЕ!)
 # ==========================================
 # Овде залепи свој кључ са Google AI Studio (почиње са AIza...)
-GEMINI_KEY = "УНЕСИ_СВОЈ_GEMINI_API_KEY"
+GEMINI_KEY = "AIzaSyBnOVsjyjJEnConG1mf7MNfHUNECktqUUY"
 
 # Твоји Супабејс подаци (већ убачени)
 SUPABASE_URL = "https://mszsrorxwmkopoyvsbpw.supabase.co"
