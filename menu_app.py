@@ -29,14 +29,14 @@ menu_database = {
     "Kačamak": {"category": "Doručak", "price": 300.00, "calories": 400, "desc": "Tradicionalni domaći kačamak", "image": "slike/kacamak.jpg"},
     "Juneća čorba 350g": {"category": "Toplo predjelo", "price": 480.00, "calories": 250, "desc": "Domaća topla juneća čorba", "image": "slike/juneca_corba.jpg"},
     "Juneће ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
-    "Juneći ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
+    "Juneћи ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
     "Bagrem piletina 350g": {"category": "Roštilj", "price": 900.00, "calories": 500, "desc": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
     "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "desc": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
-    "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "desc": "Domaći sušeni sudžuk", "image": "slike/suseni_sudzuk.jpg"},
-    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "desc": "Domaći beli sir", "image": "slike/sir.jpg"},
+    "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "desc": "Domaћи сушени суџук", "image": "slike/suseni_sudzuk.jpg"},
+    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "desc": "Domaћи бели сир", "image": "slike/sir.jpg"},
     "Mađarski juneći gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "desc": "Bogati mađarski gulaš od junetine", "image": "slike/madjarski_gulas.jpg"},
-    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "desc": "Domaće ćufte u kremastom pireu", "image": "slike/cufte_u_pireu.jpg"},
-    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "desc": "Zapečeni pasulj sa sudžukom", "image": "slike/prebranac_sudzuk.jpg"},
+    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "desc": "Domaће ћуфте у кремастом пиреу", "image": "slike/cufte_u_pireu.jpg"},
+    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "desc": "Zapečeni pasulj са суџуком", "image": "slike/prebranac_sudzuk.jpg"},
     "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "desc": "Tradicionalni posni prebranac", "image": "slike/prebranac.jpg"},
     "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "desc": "Paradajz, krastavac, luk, paprika, sir", "image": "slike/sopska_salata.jpg"},
     "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "desc": "Paradajz, krastavac, luk, ljuta paprika", "image": "slike/srpska_salata.jpg"},
@@ -185,7 +185,7 @@ def prikazi_gosta(sto):
                             snimi_u_bazu(sto, moj_sto)
                             st.rerun()
 
-    # --- ДИРЕКТАН АИ ПОЗИВ ---
+    # --- АУТОМАТСКИ АИ ЧАТБОТ (САМОЛЕЧЕЋИ) ---
     st.divider()
     st.markdown("### 🤖 Имате питање? Питајте нашег АИ конобара!")
     upit = st.chat_input("Питај ме нешто о менију (нпр. 'Шта препоручујеш за доручак?')...")
@@ -194,18 +194,38 @@ def prikazi_gosta(sto):
         with st.chat_message("user"): st.markdown(upit)
         with st.chat_message("assistant"):
             try:
-                # МЕЊАМО МОДЕЛ У gemini-pro КОЈИ УВЕК РАДИ
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_KEY}"
-                payload = {
-                    "contents": [{"parts": [{"text": f"Ти си љубазни конобар у ресторану Корзо у Крагујевцу. Наш мени: {list(menu_database.keys())}. Одговори кратко, љубазно и на српском језику. Питање госта: {upit}"}]}]
-                }
-                response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
+                # 1. Прво аутоматски питамо Гугл шта је доступно за твој кључ
+                get_models_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_KEY}"
+                models_response = requests.get(get_models_url)
                 
-                if response.status_code == 200:
-                    odgovor = response.json()['candidates'][0]['content']['parts'][0]['text']
-                    st.markdown(odgovor)
+                if models_response.status_code == 200:
+                    models_data = models_response.json()
+                    radni_model = None
+                    
+                    # Тражимо први модел који ради генерацију текста
+                    for m in models_data.get('models', []):
+                        if 'generateContent' in m.get('supportedGenerationMethods', []):
+                            radni_model = m['name'] # Ово ће бити тачан назив (нпр. models/gemini-1.0-pro)
+                            break
+                    
+                    if not radni_model:
+                        st.error("🚨 Твој АПИ кључ нема приступ ниједном AI моделу. Мораш генерисати нови кључ.")
+                    else:
+                        # 2. Сада сигурно гађамо модел за који знамо да постоји
+                        url = f"https://generativelanguage.googleapis.com/v1beta/{radni_model}:generateContent?key={GEMINI_KEY}"
+                        payload = {
+                            "contents": [{"parts": [{"text": f"Ти си љубазни конобар у ресторану Корзо у Крагујевцу. Наш мени: {list(menu_database.keys())}. Одговори кратко, љубазно и на српском језику. Питање госта: {upit}"}]}]
+                        }
+                        ai_response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
+                        
+                        if ai_response.status_code == 200:
+                            odgovor = ai_response.json()['candidates'][0]['content']['parts'][0]['text']
+                            st.markdown(odgovor)
+                            st.caption(f"*(Одговорио: {radni_model})*") # Да знамо који је модел прорадио
+                        else:
+                            st.error(f"🚨 Грешка при генерацији: {ai_response.text}")
                 else:
-                    st.error(f"🚨 Гугл грешка: {response.status_code} - {response.text}")
+                    st.error(f"🚨 Нисам могао да учитам моделе. Провери да ли је кључ исправан: {models_response.text}")
             except Exception as e:
                 st.error(f"Системска грешка: {e}")
 
