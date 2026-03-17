@@ -221,7 +221,6 @@ def prikazi_gosta(sto):
                         if ai_response.status_code == 200:
                             odgovor = ai_response.json()['candidates'][0]['content']['parts'][0]['text']
                             st.markdown(odgovor)
-                            st.caption(f"*(Одговорио: {radni_model})*") # Да знамо који је модел прорадио
                         else:
                             st.error(f"🚨 Грешка при генерацији: {ai_response.text}")
                 else:
