@@ -29,7 +29,7 @@ menu_database = {
     "Kačamak": {"category": "Doručak", "price": 300.00, "calories": 400, "desc": "Tradicionalni domaći kačamak", "image": "slike/kacamak.jpg"},
     "Juneća čorba 350g": {"category": "Toplo predjelo", "price": 480.00, "calories": 250, "desc": "Domaća topla juneća čorba", "image": "slike/juneca_corba.jpg"},
     "Juneće ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
-    "Juneћи ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
+    "Juneći ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
     "Bagrem piletina 350g": {"category": "Roštilj", "price": 900.00, "calories": 500, "desc": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
     "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "desc": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
     "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "desc": "Domaći sušeni sudžuk", "image": "slike/suseni_sudzuk.jpg"},
@@ -125,4 +125,119 @@ def prikazi_gosta(sto):
         st.divider()
         
         # Дугме за позив
-        if st.button
+        if st.button("🙋‍♂️ ПОЗОВИ КОНОБАРА", type="primary", use_container_width=True):
+            moj_sto["zove_konobara"] = True
+            snimi_u_bazu(sto, moj_sto)
+            st.success("Особље је обавештено и стиже ускоро!")
+
+        st.divider()
+        st.markdown("### 🛒 Ваша Корпа")
+        ukupno = 0
+        stavke_korpa = moj_sto.get("stavke", {})
+        
+        if not stavke_korpa:
+            st.info("Ваша корпа је тренутно празна.")
+        else:
+            for jelo, qty in stavke_korpa.items():
+                if jelo in menu_database:
+                    cena_stavke = menu_database[jelo]["price"] * qty
+                    ukupno += cena_stavke
+                    st.markdown(f"**{qty}x** {jelo} <br> *{cena_stavke:.2f} RSD*", unsafe_allow_html=True)
+            
+            st.divider()
+            st.metric("Укупно за плаћање:", f"{ukupno:.2f} RSD")
+            
+            # Дугме за рачун
+            if st.button("🧾 ЗАТРАЖИ РАЧУН", use_container_width=True):
+                moj_sto["trazi_racun"] = True
+                snimi_u_bazu(sto, moj_sto)
+                st.warning("Конобар долази са Вашим рачуном!")
+
+    # --- ГЛАВНИ ПРИКАЗ МЕНИЈА ---
+    st.markdown("<h1 style='text-align: center;'>🍽️ Добродошли у Корзо</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: gray;'>Изаберите категорију и уживајте у нашој храни.</p>", unsafe_allow_html=True)
+    st.write("")
+
+    kategorije = sorted(list(set([info["category"] for info in menu_database.values()])))
+    tabs = st.tabs(kategorije)
+
+    for i, tab in enumerate(tabs):
+        with tab:
+            kat = kategorije[i]
+            jela = {k: v for k, v in menu_database.items() if v["category"] == kat}
+            cols = st.columns(2)
+            for j, (ime, info) in enumerate(jela.items()):
+                with cols[j % 2]:
+                    with st.container(border=True):
+                        st.image(prikazi_sliku(info["image"]), width='stretch')
+                        
+                        st.markdown(f"### {ime}")
+                        st.markdown(f"**{info['price']:.2f} RSD**")
+                        st.caption(info['desc'])
+                        
+                        with st.expander("ℹ️ Нутритивне вредности"):
+                            st.write(f"🔥 Калорије: **{info['calories']} kcal**")
+                            if "protein" in info:
+                                st.write(f"🥩 Протеини: **{info['protein']}g**")
+
+                        if st.button(f"➕ Додај у корпу", key=f"add_{ime}", use_container_width=True):
+                            moj_sto["stavke"][ime] = moj_sto["stavke"].get(ime, 0) + 1
+                            snimi_u_bazu(sto, moj_sto)
+                            st.rerun()
+
+    # --- ДИРЕКТАН АИ ПОЗИВ (ОТКРИВА ГРЕШКЕ) ---
+    st.divider()
+    st.markdown("### 🤖 Имате питање? Питајте нашег АИ конобара!")
+    upit = st.chat_input("Питај ме нешто о менију (нпр. 'Шта препоручујеш за доручак?')...")
+    
+    if upit:
+        with st.chat_message("user"): st.markdown(upit)
+        with st.chat_message("assistant"):
+            try:
+                # Вратили смо на стабилни 1.5-flash модел
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+                payload = {
+                    "contents": [{"parts": [{"text": f"Ти си љубазни конобар у ресторану Корзо у Крагујевцу. Наш мени: {list(menu_database.keys())}. Одговори кратко, љубазно и на српском језику. Питање госта: {upit}"}]}]
+                }
+                response = requests.post(url, headers={'Content-Type': 'application/json'}, json=payload)
+                
+                if response.status_code == 200:
+                    odgovor = response.json()['candidates'][0]['content']['parts'][0]['text']
+                    st.markdown(odgovor)
+                else:
+                    # САДА ЋЕМО ВИДЕТИ ТАЧНУ ГРЕШКУ ОД ГУГЛА
+                    st.error(f"🚨 Гугл грешка: {response.status_code} - {response.text}")
+            except Exception as e:
+                st.error(f"Системска грешка: {e}")
+
+# ==========================================
+# 5. ГЛАВНИ РУТЕР
+# ==========================================
+params = st.query_params
+if "konobar" in params: 
+    prikazi_konobara()
+elif "sto" in params: 
+    prikazi_gosta(params["sto"])
+else:
+    st.markdown("<h1 style='text-align: center;'>Добродошли у Корзо Систем 🍽️</h1>", unsafe_allow_html=True)
+    st.markdown("---")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        with st.container(border=True):
+            st.markdown("### 📱 За Госте")
+            st.write("Скенирајте QR код на столу или уђите овде за тест.")
+            if st.button("Уђи као Сто 1", use_container_width=True):
+                st.query_params["sto"] = "1"
+                st.rerun()
+            if st.button("Уђи као Сто 2", use_container_width=True):
+                st.query_params["sto"] = "2"
+                st.rerun()
+                
+    with col2:
+        with st.container(border=True):
+            st.markdown("### 👨‍🍳 За Особље")
+            st.write("Приступ контролном панелу за праћење поруџбина.")
+            if st.button("Отвори Контролни Панел", type="primary", use_container_width=True):
+                st.query_params["konobar"] = "true"
+                st.rerun()
