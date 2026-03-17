@@ -86,7 +86,6 @@ def prikazi_konobara():
         cols = st.columns(3)
         for i, (sto, podaci) in enumerate(baza.items()):
             with cols[i % 3]:
-                # Боја картице се мења ако гост зове или тражи рачун
                 if podaci.get('zove_konobara'):
                     st.error(f"🚨 СТО {sto} ВАС ЗОВЕ!")
                 elif podaci.get('trazi_racun'):
@@ -134,16 +133,17 @@ def prikazi_gosta(sto):
         st.divider()
         st.markdown("### 🛒 Ваша Корпа")
         ukupno = 0
-        ставке = moj_sto.get("stavke", {})
+        stavke_korpa = moj_sto.get("stavke", {})
         
-        if не ставке:
+        # ОВДЕ ЈЕ БИЛА ГРЕШКА - сада је исправан Python код!
+        if not stavke_korpa:
             st.info("Ваша корпа је тренутно празна.")
         else:
-            for jelo, qty in ставке.items():
+            for jelo, qty in stavke_korpa.items():
                 if jelo in menu_database:
-                    цена_ставке = menu_database[jelo]["price"] * qty
-                    ukupno += цена_ставке
-                    st.markdown(f"**{qty}x** {jelo} <br> *{цена_ставке:.2f} RSD*", unsafe_allow_html=True)
+                    cena_stavke = menu_database[jelo]["price"] * qty
+                    ukupno += cena_stavke
+                    st.markdown(f"**{qty}x** {jelo} <br> *{cena_stavke:.2f} RSD*", unsafe_allow_html=True)
             
             st.divider()
             st.metric("Укупно за плаћање:", f"{ukupno:.2f} RSD")
@@ -170,20 +170,17 @@ def prikazi_gosta(sto):
             for j, (ime, info) in enumerate(jela.items()):
                 with cols[j % 2]:
                     with st.container(border=True):
-                        # Слика преко целе ширине картице
                         st.image(prikazi_sliku(info["image"]), width='stretch')
                         
                         st.markdown(f"### {ime}")
                         st.markdown(f"**{info['price']:.2f} RSD**")
                         st.caption(info['desc'])
                         
-                        # Експандер за детаље
                         with st.expander("ℹ️ Нутритивне вредности"):
                             st.write(f"🔥 Калорије: **{info['calories']} kcal**")
                             if "protein" in info:
                                 st.write(f"🥩 Протеини: **{info['protein']}g**")
 
-                        # Дугме за додавање у корпу
                         if st.button(f"➕ Додај у корпу", key=f"add_{ime}", use_container_width=True):
                             moj_sto["stavke"][ime] = moj_sto["stavke"].get(ime, 0) + 1
                             snimi_u_bazu(sto, moj_sto)
@@ -198,7 +195,6 @@ def prikazi_gosta(sto):
         with st.chat_message("user"): st.markdown(upit)
         with st.chat_message("assistant"):
             try:
-                # Најстабилнији директан позив без икаквих пакета
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
                 payload = {
                     "contents": [{"parts": [{"text": f"Ти си љубазни конобар у ресторану Корзо у Крагујевцу. Наш мени: {list(menu_database.keys())}. Одговори кратко, љубазно и на српском језику. Питање госта: {upit}"}]}]
@@ -222,7 +218,6 @@ if "konobar" in params:
 elif "sto" in params: 
     prikazi_gosta(params["sto"])
 else:
-    # ПОЧЕТНА СТРАНИЦА ЗА ТЕСТИРАЊЕ
     st.markdown("<h1 style='text-align: center;'>Добродошли у Корзо Систем 🍽️</h1>", unsafe_allow_html=True)
     st.markdown("---")
     
