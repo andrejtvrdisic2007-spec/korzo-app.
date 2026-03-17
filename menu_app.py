@@ -8,13 +8,13 @@ from supabase import create_client, Client
 # 1. ПОДЕШАВАЊЕ КЉУЧЕВА (УНЕСИ СВОЈЕ!)
 # ==========================================
 # Овде залепи свој кључ са Google AI Studio (почиње са AIza...)
-GEMINI_KEY = "AIzaSyBnOVsjyjJEnConG1mf7MNfHUNECktqUUY"
+GEMINI_KEY = "УНЕСИ_СВОЈ_GEMINI_API_KEY"
 
-# Твоји Супабејс подаци
+# Твоји Супабејс подаци (већ убачени)
 SUPABASE_URL = "https://mszsrorxwmkopoyvsbpw.supabase.co"
 SUPABASE_KEY = "sb_publishable_mYfAEgWeQqUcjTIKqORx5w_A4hSqIc_"
 
-# Иницијализација
+# Иницијализација клијената
 client_ai = genai.Client(api_key=GEMINI_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
@@ -33,21 +33,21 @@ menu_database = {
     "Bagrem piletina 350g": {"category": "Jela sa roštilja", "price": 900.00, "calories": 500, "protein": 60, "description": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
     "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "protein": 30, "description": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
     "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "protein": 20, "description": "Domaći sušeni sudžuk", "image": "slike/suseni_sudzuk.jpg"},
-    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "protein": 20, "description": "Domaći beli sir", "image": "slike/sir.jpg"},
+    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "protein": 20, "description": "Domaћи beli sir", "image": "slike/sir.jpg"},
     "Mađarski juneći gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "protein": 40, "description": "Bogati mađarski gulaš od junetine", "image": "slike/madjarski_gulas.jpg"},
-    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "protein": 30, "description": "Domaće ćufte u kremastom pire krompiru", "image": "slike/cufte_u_pireu.jpg"},
-    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "description": "Zapečeni pasulj sa sudžukom", "image": "slike/prebranac_sudzuk.jpg"},
-    "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "protein": 18, "description": "Tradicionalni posni prebranac", "image": "slike/prebranac.jpg"},
+    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "protein": 30, "description": "Domaће ćufte u кремaстом пире кропмпиру", "image": "slike/cufte_u_pireu.jpg"},
+    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "description": "Zapečeni pasulj са sudžukom", "image": "slike/prebranac_sudzuk.jpg"},
+    "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "protein": 18, "description": "Традиционални посни пребранац", "image": "slike/prebranac.jpg"},
     "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "protein": 8, "description": "Paradajz, krastavac, luk, paprika, sir", "image": "slike/sopska_salata.jpg"},
     "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "protein": 3, "description": "Paradajz, krastavac, luk, ljuta paprika", "image": "slike/srpska_salata.jpg"},
-    "Kupus salata 300g": {"category": "Salate", "price": 330.00, "calories": 80, "protein": 2, "description": "Sveža kupus salata", "image": "slike/kupus_salata.jpg"},
-    "Ljuta paprika u ulju 1 komad": {"category": "Salate", "price": 150.00, "calories": 50, "protein": 0, "description": "Pečena ljuta paprika", "image": "slike/ljuta_paprika.jpg"},
-    "Lepinja 1 komad": {"category": "Dodaci", "price": 120.00, "calories": 250, "protein": 7, "description": "Sveža domaća lepinja", "image": "slike/lepinja.jpg"},
+    "Kupus salata 300g": {"category": "Salate", "price": 330.00, "calories": 80, "protein": 2, "description": "Sveжа купус салата", "image": "slike/kupus_salata.jpg"},
+    "Ljuta paprika u ulju 1 komad": {"category": "Salate", "price": 150.00, "calories": 50, "protein": 0, "description": "Печена љута паприка", "image": "slike/ljuta_paprika.jpg"},
+    "Lepinja 1 komad": {"category": "Dodaci", "price": 120.00, "calories": 250, "protein": 7, "description": "Sveжа домаћа лепиња", "image": "slike/lepinja.jpg"},
     "Pomfrit 150g": {"category": "Dodaci", "price": 300.00, "calories": 450, "protein": 4, "description": "Hrskavi prženi krompirići", "image": "slike/pomfrit.jpg"},
-    "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "description": "Domaћи zreli kajmak", "image": "slike/kugla_kajmaka.jpg"}
+    "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "description": "Domaћи зрели кајмак", "image": "slike/kugla_kajmaka.jpg"}
 }
 
-# --- ФУНКЦИЈЕ ЗА БАЗУ ---
+# --- ФУНКЦИЈЕ ЗА БАЗУ ПОДАТАКА ---
 def ucitaj_iz_baze():
     try:
         res = supabase.table("porudzbine").select("*").execute()
@@ -97,7 +97,7 @@ def prikazi_konobara():
                     ukupno = 0
                     stavke = podaci.get("stavke", {})
                     for jelo, kolicina in stavke.items():
-                        # ✅ ЗАШТИТА ОД KEYERROR: Провера да ли јело постоји у менију
+                        # ✅ ЗАШТИТА: Спречава KeyError ако је назив из базе застарео
                         if jelo in menu_database:
                             cena_stavke = menu_database[jelo]["price"] * kolicina
                             ukupno += cena_stavke
@@ -105,8 +105,8 @@ def prikazi_konobara():
                         else:
                             st.write(f"⚠️ *{jelo}* (Није у менију)")
                     
-                    st.metric("Укупно:", f"{ukupno:.2f} RSD")
-                    if st.button(f"✅ Готово / Наплаћено", key=f"del_{sto}"):
+                    st.metric("За наплату:", f"{ukupno:.2f} RSD")
+                    if st.button(f"✅ Наплаћено / Очисти", key=f"del_{sto}"):
                         obrisi_sto(sto)
                         st.rerun()
     time.sleep(10)
@@ -127,24 +127,24 @@ def prikazi_gosta(sto):
         st.sidebar.success("Особље стиже!")
 
     st.sidebar.divider()
-    st.sidebar.subheader("🛒 Ваш рачун")
+    st.sidebar.subheader("🛒 Ваша Поруџбина")
     ukupno = 0
     stavke_korpa = moj_sto.get("stavke", {})
     for jelo, qty in stavke_korpa.items():
-        # ✅ ЗАШТИТА ОД KEYERROR: Провера да ли јело постоји у менију
         if jelo in menu_database:
             cena_stavke = menu_database[jelo]["price"] * qty
             ukupno += cena_stavke
             st.sidebar.write(f"**{qty}x** {jelo} ({cena_stavke:.2f} RSD)")
         else:
-            st.sidebar.write(f"⚠️ *{jelo}* (Стара ставка)")
+            st.sidebar.write(f"⚠️ *{jelo}* (Застарело)")
+            
     st.sidebar.metric("Укупно:", f"{ukupno:.2f} RSD")
 
     if st.sidebar.button("🧾 Плати рачун (Кеш)", width='stretch'):
         moj_sto["trazi_racun"] = True
         moj_sto["nacin_placanja"] = "Кеш"
         snimi_u_bazu(sto, moj_sto)
-        st.sidebar.info("Конобар долази са рачуном.")
+        st.sidebar.info("Затражили сте рачун!")
 
     # ГЛАВНИ МЕНИ
     st.title("🍽️ Корзо Паметни Мени")
@@ -177,13 +177,15 @@ def prikazi_gosta(sto):
     upit = st.chat_input("Питајте нешто о храни...")
     if upit:
         with st.chat_message("user"): st.markdown(upit)
-        context = f"Мени ресторана Корзо. Списак јела: {list(menu_database.keys())}. Питање: {upit}"
+        context = f"Ти си конобар у ресторану Корзо. Мени: {list(menu_database.keys())}. Питање: {upit}"
         with st.chat_message("assistant"):
             try:
-                # Промeњено на стабилнији модел 1.5-flash
+                # Користимо стабилнији 1.5-flash модел
                 odgovor = client_ai.models.generate_content(model='gemini-1.5-flash', contents=context)
                 st.markdown(odgovor.text)
-            except:
+            except Exception as e:
+                # ПРИКАЗ ГРЕШКЕ ЗА ДЕБАГОВАЊЕ
+                st.error(f"АИ Грешка: {e}")
                 st.markdown("Извините, мој АИ мозак је тренутно заузет. Пробајте поново!")
 
 # ==========================================
