@@ -1,27 +1,30 @@
 import streamlit as st
 import os
 import time
-from google import genai
+import google.generativeai as genai  # Промењена библиотека
 from supabase import create_client, Client
 
 # ==========================================
-# 1. ПОДЕШАВАЊЕ КЉУЧЕВА (УНЕСИ СВОЈЕ!)
+# 1. ПОДЕШАВАЊЕ КЉУЧЕВА
 # ==========================================
-# Овде залепи свој кључ са Google AI Studio (почиње са AIza...)
+# Унеси свој API кључ испод:
 GEMINI_KEY = "AIzaSyBnOVsjyjJEnConG1mf7MNfHUNECktqUUY"
 
-# Твоји Супабејс подаци (већ убачени)
 SUPABASE_URL = "https://mszsrorxwmkopoyvsbpw.supabase.co"
 SUPABASE_KEY = "sb_publishable_mYfAEgWeQqUcjTIKqORx5w_A4hSqIc_"
 
-# Иницијализација клијената
-client_ai = genai.Client(api_key=GEMINI_KEY)
+# Повезивање са АИ моделом
+genai.configure(api_key=GEMINI_KEY)
+# Покушавамо са најстабилнијим називом модела
+model_ai = genai.GenerativeModel('gemini-1.5-flash')
+
+# Повезивање са Супабејс базом
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(page_title="Корзо Паметни Систем", page_icon="🍽️", layout="wide")
 
 # ==========================================
-# 2. КОМПЛЕТНА БАЗА ПОДАТАКА (МЕНИ)
+# 2. МЕНИ БАЗА ПОДАТАКА
 # ==========================================
 menu_database = {
     "Korzo doručak": {"category": "Doručak", "price": 630.00, "calories": 750, "protein": 35, "description": "2 jaja, sudžuk, goveđa pršuta, ajvar, sir", "image": "slike/korzo_dorucak.jpg"},
@@ -36,7 +39,7 @@ menu_database = {
     "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "protein": 20, "description": "Domaћи beli sir", "image": "slike/sir.jpg"},
     "Mađarski juneći gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "protein": 40, "description": "Bogati mađarski gulaš od junetine", "image": "slike/madjarski_gulas.jpg"},
     "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "protein": 30, "description": "Domaће ćufte u кремaстом пире кропмпиру", "image": "slike/cufte_u_pireu.jpg"},
-    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "description": "Zapečeni pasulj са sudžukom", "image": "slike/prebranac_sudzuk.jpg"},
+    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "description": "Zapečeni пасуљ са sudžukom", "image": "slike/prebranac_sudzuk.jpg"},
     "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "protein": 18, "description": "Традиционални посни пребранац", "image": "slike/prebranac.jpg"},
     "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "protein": 8, "description": "Paradajz, krastavac, luk, paprika, sir", "image": "slike/sopska_salata.jpg"},
     "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "protein": 3, "description": "Paradajz, krastavac, luk, ljuta paprika", "image": "slike/srpska_salata.jpg"},
@@ -47,7 +50,7 @@ menu_database = {
     "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "description": "Domaћи зрели кајмак", "image": "slike/kugla_kajmaka.jpg"}
 }
 
-# --- ФУНКЦИЈЕ ЗА БАЗУ ПОДАТАКА ---
+# --- ФУНКЦИЈЕ ЗА БАЗУ ---
 def ucitaj_iz_baze():
     try:
         res = supabase.table("porudzbine").select("*").execute()
@@ -55,18 +58,15 @@ def ucitaj_iz_baze():
     except: return {}
 
 def snimi_u_bazu(sto, podaci):
-    provera = supabase.table("porudzbine").select("*").eq("sto", sto).execute()
-    nova_data = {
-        "sto": sto, 
-        "stavke": podaci.get("stavke", {}), 
-        "zove_konobara": podaci.get("zove_konobara", False), 
-        "trazi_racun": podaci.get("trazi_racun", False), 
-        "nacin_placanja": podaci.get("nacin_placanja", "")
-    }
-    if len(provera.data) > 0:
-        supabase.table("porudzbine").update(nova_data).eq("sto", sto).execute()
-    else:
-        supabase.table("porudzbine").insert(nova_data).execute()
+    try:
+        provera = supabase.table("porudzbine").select("*").eq("sto", sto).execute()
+        nova_data = {"sto": sto, "stavke": podaci.get("stavke", {}), "zove_konobara": podaci.get("zove_konobara", False), "trazi_racun": podaci.get("trazi_racun", False), "nacin_placanja": podaci.get("nacin_placanja", "")}
+        if len(provera.data) > 0:
+            supabase.table("porudzbine").update(nova_data).eq("sto", sto).execute()
+        else:
+            supabase.table("porudzbine").insert(nova_data).execute()
+    except Exception as e:
+        st.error(f"Грешка са базом: {e}")
 
 def obrisi_sto(sto):
     supabase.table("porudzbine").delete().eq("sto", sto).execute()
@@ -79,34 +79,25 @@ def prikazi_sliku(putanja):
 # ==========================================
 def prikazi_konobara():
     st.title("👨‍🍳 Контролни Панел - Корзо")
-    st.info("Екран се аутоматски освежава сваких 10 секунди.")
-    
+    st.info("Ажурирање на 10с.")
     baza = ucitaj_iz_baze()
-    if not baza:
-        st.success("Нема активних поруџбина.")
+    if not baza: st.success("Нема поруџбина.")
     else:
         cols = st.columns(3)
         for i, (sto, podaci) in enumerate(baza.items()):
             with cols[i % 3]:
                 with st.container(border=True):
-                    if podaci.get('zove_konobara'): st.error(f"🔔 СТО {sto} ВАС ЗОВЕ!")
-                    elif podaci.get('trazi_racun'): st.warning(f"💳 СТО {sto} ТРАЖИ РАЧУН ({podaci.get('nacin_placanja')})")
+                    if podaci.get('zove_konobara'): st.error(f"🔔 СТО {sto} ЗОВЕ!")
+                    elif podaci.get('trazi_racun'): st.warning(f"💳 СТО {sto} РАЧУН")
                     else: st.subheader(f"📍 Сто {sto}")
-                    
-                    st.write("---")
                     ukupno = 0
-                    stavke = podaci.get("stavke", {})
-                    for jelo, kolicina in stavke.items():
-                        # ✅ ЗАШТИТА: Спречава KeyError ако је назив из базе застарео
+                    for jelo, kolicina in podaci.get("stavke", {}).items():
                         if jelo in menu_database:
-                            cena_stavke = menu_database[jelo]["price"] * kolicina
-                            ukupno += cena_stavke
+                            cena = menu_database[jelo]["price"] * kolicina
+                            ukupno += cena
                             st.write(f"**{kolicina}x** {jelo}")
-                        else:
-                            st.write(f"⚠️ *{jelo}* (Није у менију)")
-                    
-                    st.metric("За наплату:", f"{ukupno:.2f} RSD")
-                    if st.button(f"✅ Наплаћено / Очисти", key=f"del_{sto}"):
+                    st.metric("Укупно:", f"{ukupno:.2f} RSD")
+                    if st.button(f"✅ Готово", key=f"del_{sto}"):
                         obrisi_sto(sto)
                         st.rerun()
     time.sleep(10)
@@ -119,74 +110,51 @@ def prikazi_gosta(sto):
     baza = ucitaj_iz_baze()
     moj_sto = baza.get(sto, {"stavke": {}, "zove_konobara": False, "trazi_racun": False, "nacin_placanja": ""})
 
-    # САЈДБАР (КОРПА)
     st.sidebar.title(f"📍 Сто: {sto}")
     if st.sidebar.button("🙋‍♂️ ПОЗОВИ КОНОБАРА", type="primary", width='stretch'):
         moj_sto["zove_konobara"] = True
         snimi_u_bazu(sto, moj_sto)
-        st.sidebar.success("Особље стиже!")
+        st.sidebar.success("Конобар стиже!")
 
     st.sidebar.divider()
-    st.sidebar.subheader("🛒 Ваша Поруџбина")
     ukupno = 0
-    stavke_korpa = moj_sto.get("stavke", {})
-    for jelo, qty in stavke_korpa.items():
+    for jelo, qty in moj_sto.get("stavke", {}).items():
         if jelo in menu_database:
-            cena_stavke = menu_database[jelo]["price"] * qty
-            ukupno += cena_stavke
-            st.sidebar.write(f"**{qty}x** {jelo} ({cena_stavke:.2f} RSD)")
-        else:
-            st.sidebar.write(f"⚠️ *{jelo}* (Застарело)")
-            
+            ukupno += menu_database[jelo]["price"] * qty
+            st.sidebar.write(f"{qty}x {jelo}")
     st.sidebar.metric("Укупно:", f"{ukupno:.2f} RSD")
 
-    if st.sidebar.button("🧾 Плати рачун (Кеш)", width='stretch'):
-        moj_sto["trazi_racun"] = True
-        moj_sto["nacin_placanja"] = "Кеш"
-        snimi_u_bazu(sto, moj_sto)
-        st.sidebar.info("Затражили сте рачун!")
-
-    # ГЛАВНИ МЕНИ
-    st.title("🍽️ Корзо Паметни Мени")
+    st.title("🍽️ Корзо Мени")
     kategorije = sorted(list(set([info["category"] for info in menu_database.values()])))
     tabs = st.tabs(kategorije)
 
     for i, tab in enumerate(tabs):
         with tab:
-            kat = kategorije[i]
-            jela_kat = {k: v for k, v in menu_database.items() if v["category"] == kat}
+            items = {k: v for k, v in menu_database.items() if v["category"] == kategorije[i]}
             cols = st.columns(2)
-            for j, (ime, info) in enumerate(jela_kat.items()):
+            for j, (ime, info) in enumerate(items.items()):
                 with cols[j % 2]:
                     with st.container(border=True):
                         st.image(prikazi_sliku(info["image"]), width='stretch')
                         st.subheader(ime)
-                        st.write(f"Цена: **{info['price']:.2f} RSD**")
-                        st.caption(info['description'])
-                        with st.expander("Нутритивне вредности"):
-                            st.write(f"🔥 {info['calories']} kcal | 🥩 {info['protein']}g протеина")
+                        st.write(f"**{info['price']:.2f} RSD**")
                         if st.button(f"🛒 Додај", key=f"add_{ime}"):
                             moj_sto["stavke"][ime] = moj_sto["stavke"].get(ime, 0) + 1
                             snimi_u_bazu(sto, moj_sto)
-                            st.toast(f"Додато: {ime}")
                             st.rerun()
 
-    # AI ЧАТБОТ
+    # --- ПОПРАВЉЕНИ АИ ДЕО ---
     st.divider()
-    st.subheader("🤖 Питајте нашег AI асистента")
-    upit = st.chat_input("Питајте нешто о храни...")
+    st.subheader("🤖 Питајте AI конобара")
+    upit = st.chat_input("Питајте нешто...")
     if upit:
         with st.chat_message("user"): st.markdown(upit)
-        context = f"Ти си конобар у ресторану Корзо. Мени: {list(menu_database.keys())}. Питање: {upit}"
         with st.chat_message("assistant"):
             try:
-                # Користимо стабилнији 1.5-flash модел
-                odgovor = client_ai.models.generate_content(model='gemini-1.5-flash', contents=context)
+                odgovor = model_ai.generate_content(f"Ти си конобар у Корзоу. Мени: {list(menu_database.keys())}. Гост пита: {upit}")
                 st.markdown(odgovor.text)
             except Exception as e:
-                # ПРИКАЗ ГРЕШКЕ ЗА ДЕБАГОВАЊЕ
                 st.error(f"АИ Грешка: {e}")
-                st.markdown("Извините, мој АИ мозак је тренутно заузет. Пробајте поново!")
 
 # ==========================================
 # 5. ГЛАВНИ РУТЕР
@@ -196,12 +164,6 @@ if "konobar" in params: prikazi_konobara()
 elif "sto" in params: prikazi_gosta(params["sto"])
 else:
     st.title("Добродошли у Корзо! 🍽️")
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("📱 Отвори као Сто 1"):
-            st.query_params["sto"] = "1"
-            st.rerun()
-    with col2:
-        if st.button("👨‍🍳 Контролни Панел"):
-            st.query_params["konobar"] = "true"
-            st.rerun()
+    if st.button("📱 Уђи као Сто 1"):
+        st.query_params["sto"] = "1"
+        st.rerun()
