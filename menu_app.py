@@ -28,7 +28,7 @@ menu_database = {
     "Kajgana": {"category": "Doručak", "price": 350.00, "calories": 300, "desc": "Domaća kajgana", "image": "slike/kajgana.jpg"},
     "Kačamak": {"category": "Doručak", "price": 300.00, "calories": 400, "desc": "Tradicionalni domaći kačamak", "image": "slike/kacamak.jpg"},
     "Juneća čorba 350g": {"category": "Toplo predjelo", "price": 480.00, "calories": 250, "desc": "Domaća topla juneća čorba", "image": "slike/juneca_corba.jpg"},
-    "Juneće ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
+    "Juneће ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
     "Juneći ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
     "Bagrem piletina 350g": {"category": "Roštilj", "price": 900.00, "calories": 500, "desc": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
     "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "desc": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
@@ -72,7 +72,7 @@ def prikazi_sliku(putanja):
     return putanja if os.path.exists(putanja) else "https://via.placeholder.com/600x400.png?text=Корзо+Крагујевац"
 
 # ==========================================
-# 3. ПАНЕЛ ЗА КОНОБАРА (ЛЕПШИ И ПРЕГЛЕДНИЈИ)
+# 3. ПАНЕЛ ЗА КОНОБАРА
 # ==========================================
 def prikazi_konobara():
     st.markdown("<h1 style='text-align: center; color: #E63946;'>👨‍🍳 Контролни Панел - Корзо</h1>", unsafe_allow_html=True)
@@ -113,7 +113,7 @@ def prikazi_konobara():
     st.rerun()
 
 # ==========================================
-# 4. СТРАНИЦА ЗА ГОСТА (ПРЕМИЈУМ ИЗГЛЕД)
+# 4. СТРАНИЦА ЗА ГОСТА
 # ==========================================
 def prikazi_gosta(sto):
     baza = ucitaj_iz_baze()
@@ -185,7 +185,7 @@ def prikazi_gosta(sto):
                             snimi_u_bazu(sto, moj_sto)
                             st.rerun()
 
-    # --- ДИРЕКТАН АИ ПОЗИВ (ОТКРИВА ГРЕШКЕ) ---
+    # --- ДИРЕКТАН АИ ПОЗИВ ---
     st.divider()
     st.markdown("### 🤖 Имате питање? Питајте нашег АИ конобара!")
     upit = st.chat_input("Питај ме нешто о менију (нпр. 'Шта препоручујеш за доручак?')...")
@@ -194,8 +194,8 @@ def prikazi_gosta(sto):
         with st.chat_message("user"): st.markdown(upit)
         with st.chat_message("assistant"):
             try:
-                # Вратили смо на стабилни 1.5-flash модел
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_KEY}"
+                # МЕЊАМО МОДЕЛ У gemini-pro КОЈИ УВЕК РАДИ
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_KEY}"
                 payload = {
                     "contents": [{"parts": [{"text": f"Ти си љубазни конобар у ресторану Корзо у Крагујевцу. Наш мени: {list(menu_database.keys())}. Одговори кратко, љубазно и на српском језику. Питање госта: {upit}"}]}]
                 }
@@ -205,7 +205,6 @@ def prikazi_gosta(sto):
                     odgovor = response.json()['candidates'][0]['content']['parts'][0]['text']
                     st.markdown(odgovor)
                 else:
-                    # САДА ЋЕМО ВИДЕТИ ТАЧНУ ГРЕШКУ ОД ГУГЛА
                     st.error(f"🚨 Гугл грешка: {response.status_code} - {response.text}")
             except Exception as e:
                 st.error(f"Системска грешка: {e}")
