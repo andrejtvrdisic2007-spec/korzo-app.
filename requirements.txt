@@ -1,4 +1,4 @@
 streamlit
 supabase
 requests
-st-keyup
+streamlit-keyup
