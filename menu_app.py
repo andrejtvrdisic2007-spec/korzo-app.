@@ -3,7 +3,8 @@ import os
 import time
 import requests
 import re
-import difflib  # НОВА БИБЛИОТЕКА ЗА ПАМЕТНУ ПРЕТРАГУ (Уграђена у Python)
+import difflib
+from st_keyup import st_keyup  # НОВА БИБЛИОТЕКА ЗА КУЦАЊЕ УЖИВО
 from supabase import create_client, Client
 
 # ==========================================
@@ -101,7 +102,6 @@ menu_database = {
 
 # --- ЛОГИКА ЗА ПАМЕТНУ ПРЕТРАГУ (ФУЗИ) ---
 def ukloni_kvacice(tekst):
-    """Претвара српска слова у обична латинична (ć->c, š->s)"""
     tekst = tekst.lower()
     zamene = {'ć': 'c', 'č': 'c', 'š': 's', 'ž': 'z', 'đ': 'dj'}
     for sr, lat in zamene.items():
@@ -109,25 +109,23 @@ def ukloni_kvacice(tekst):
     return tekst
 
 def proveri_poklapanje(upit, naziv_jela):
-    """Проверава да ли се унос поклапа са јелом, толеришући грешке"""
     upit_norm = ukloni_kvacice(upit).strip()
     naziv_norm = ukloni_kvacice(naziv_jela)
     
     if not upit_norm:
         return True
         
-    # 1. Ако садржи тачан део речи (нпр. "pre" у "prebranac")
     if upit_norm in naziv_norm:
         return True
         
-    # 2. Толеранција на грешке у куцању (нпр. "gukas" уместо "gulas")
-    reci_iz_назива = naziv_norm.split()
-    for rec in reci_iz_назива:
-        # SequenceMatcher враћа проценат сличности између две речи (0.0 до 1.0)
-        slicnost = difflib.SequenceMatcher(None, upit_norm, rec).ratio()
-        if slicnost >= 0.7:  # 70% сличности је довољно да опрости 1-2 слова грешке
-            return True
-            
+    # Активирамо толеранцију на грешке тек кад гост укуца бар 3 слова
+    if len(upit_norm) >= 3:
+        reci_iz_naziva = naziv_norm.split()
+        for rec in reci_iz_naziva:
+            slicnost = difflib.SequenceMatcher(None, upit_norm, rec).ratio()
+            if slicnost >= 0.7:  
+                return True
+                
     return False
 
 # --- ФУНКЦИЈЕ ЗА БАЗУ ---
@@ -225,9 +223,12 @@ def prikazi_gosta(sto):
 
         st.write("") 
         
-        # --- ФИЛТЕРИ И ПАМЕТНА ПРЕТРАГА ---
+        # --- ФИЛТЕРИ И ЖИВА ПРЕТРАГА ---
         with st.expander("🔍 Филтери и претрага (куцај слободно)"):
-            search_tekst = st.text_input("Шта вам се једе данас?", "", placeholder="нпр. 'prebranac', 'cevapi', 'gulas'...")
+            # Користимо st_keyup за уживо читање тастатуре са малом паузом (debounce) од 300ms да екран не трепери превише
+            search_tekst = st_keyup("Шта вам се једе данас?", placeholder="нпр. 'prebranac', 'cevapi', 'gulas'...", debounce=300)
+            if not search_tekst:
+                search_tekst = ""
             
             c_cena, c_ishrana = st.columns(2)
             with c_cena:
@@ -235,16 +236,12 @@ def prikazi_gosta(sto):
             with c_ishrana:
                 odabrana_ishrana = st.multiselect("Врста исхране", ["Meso", "Vegetarijansko", "Posno"])
         
-        # Примена Паметног Филтера
         filtriran_meni = {}
         for ime, info in menu_database.items():
-            # 1. Паметно поклапање имена (опрашта грешке и квачице)
             if not proveri_poklapanje(search_tekst, ime):
                 continue
-            # 2. Цена
             if info["price"] > max_cena:
                 continue
-            # 3. Исхрана
             if odabrana_ishrana and info["diet"] not in odabrana_ishrana:
                 continue
             filtriran_meni[ime] = info
