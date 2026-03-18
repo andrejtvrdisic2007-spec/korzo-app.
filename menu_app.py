@@ -3,6 +3,7 @@ import os
 import time
 import requests
 import re
+import difflib  # НОВА БИБЛИОТЕКА ЗА ПАМЕТНУ ПРЕТРАГУ (Уграђена у Python)
 from supabase import create_client, Client
 
 # ==========================================
@@ -20,27 +21,22 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 st.set_page_config(page_title="Корзо | Дигитални Мени", page_icon="🍽️", layout="centered", initial_sidebar_state="collapsed")
 
-# --- WOLT/GLOVO СТИЛ (CSS) + ПОПРАВЉЕНИ ТАБОВИ ---
+# --- WOLT/GLOVO СТИЛ (CSS) ---
 st.markdown("""
 <style>
-    /* Ресетовање маргина за мобилни изглед */
     .block-container { padding: 1rem 1rem 3rem 1rem; max-width: 600px; }
-    
-    /* Скривање Streamlit вишкова */
     #MainMenu, footer, header {visibility: hidden;}
     [data-testid="collapsedControl"] {display: none;}
     
-    /* Модерне картице за јела (Wolt стил) */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         border-radius: 20px !important;
         border: none !important;
         box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2) !important;
         margin-bottom: 15px;
         overflow: hidden;
-        background-color: #1e1e1e; /* Тамна позадина картице */
+        background-color: #1e1e1e;
     }
     
-    /* Дугмићи са заобљеним ивицама */
     div.stButton > button {
         border-radius: 25px;
         font-weight: 700;
@@ -49,31 +45,23 @@ st.markdown("""
     }
     div.stButton > button:active { transform: scale(0.95); }
     
-    /* Примарно дугме (Црвена Корзо боја) */
     div.stButton > button[kind="primary"] {
         background-color: #E63946;
         color: white;
     }
     
-    /* ПОПРАВЉЕНИ ТАБОВИ (Категорије) */
     .stTabs [data-baseweb="tab-list"] { gap: 10px; padding-bottom: 10px; }
-    
-    /* Неозначени табови - јасан контраст и видљивост */
     .stTabs [data-baseweb="tab"] { 
         border-radius: 20px; 
         padding: 8px 18px; 
         background-color: #3b3f4a !important; 
         border: 1px solid #5a5f6e; 
     }
-    
-    /* Текст у неозначеним табовима да не буде избледео */
     .stTabs [data-baseweb="tab"] p {
         color: #f0f0f0 !important;
         opacity: 1 !important;
         font-weight: 600 !important;
     }
-    
-    /* Активни таб (Црвена боја) */
     .stTabs [aria-selected="true"] { 
         background-color: #E63946 !important; 
         border: 1px solid #E63946 !important;
@@ -85,7 +73,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. БАЗА МЕНИЈА (Додате врсте исхране за филтере)
+# 2. БАЗА МЕНИЈА И ПАМЕТНА ПРЕТРАГА
 # ==========================================
 menu_database = {
     "Korzo doručak": {"category": "Doručak", "price": 630.00, "calories": 750, "protein": 35, "carbs": 45, "sugar": 5, "fiber": 4, "diet": "Meso", "desc": "2 jaja, sudžuk, goveđa pršuta, ajvar, sir", "image": "slike/korzo_dorucak.jpg"},
@@ -93,24 +81,56 @@ menu_database = {
     "Kačamak": {"category": "Doručak", "price": 300.00, "calories": 400, "protein": 8, "carbs": 55, "sugar": 2, "fiber": 3, "diet": "Vegetarijansko", "desc": "Tradicionalni domaći kačamak", "image": "slike/kacamak.jpg"},
     "Juneća čorba 350g": {"category": "Toplo predjelo", "price": 480.00, "calories": 250, "protein": 18, "carbs": 15, "sugar": 3, "fiber": 2, "diet": "Meso", "desc": "Domaća topla juneća čorba", "image": "slike/juneca_corba.jpg"},
     "Juneće ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "protein": 45, "carbs": 10, "sugar": 2, "fiber": 1, "diet": "Meso", "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
-    "Juneћи ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "protein": 50, "carbs": 5, "sugar": 1, "fiber": 0, "diet": "Meso", "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
-    "Bagrem piletina 350g": {"category": "Roštilj", "price": 900.00, "calories": 500, "protein": 60, "carbs": 8, "sugar": 2, "fiber": 1, "diet": "Meso", "desc": "Specijalitet kuće од пилетине", "image": "slike/bagrem_piletina.jpg"},
+    "Juneći ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "protein": 50, "carbs": 5, "sugar": 1, "fiber": 0, "diet": "Meso", "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
+    "Bagrem piletina 350g": {"category": "Roštilj", "price": 900.00, "calories": 500, "protein": 60, "carbs": 8, "sugar": 2, "fiber": 1, "diet": "Meso", "desc": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
     "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "protein": 30, "carbs": 0, "sugar": 0, "fiber": 0, "diet": "Meso", "desc": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
-    "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "protein": 20, "carbs": 2, "sugar": 0, "fiber": 0, "diet": "Meso", "desc": "Домаћи сушени суџук", "image": "slike/suseni_sudzuk.jpg"},
-    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "protein": 20, "carbs": 3, "sugar": 3, "fiber": 0, "diet": "Vegetarijansko", "desc": "Домаћи бели сир", "image": "slike/sir.jpg"},
-    "Mađarski juneћи gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "protein": 40, "carbs": 30, "sugar": 6, "fiber": 4, "diet": "Meso", "desc": "Bogati mađarski gulaš од јунетине", "image": "slike/madjarski_gulas.jpg"},
-    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "protein": 30, "carbs": 45, "sugar": 4, "fiber": 3, "diet": "Meso", "desc": "Домаће ћуфте у кремастом пиреу", "image": "slike/cufte_u_pireu.jpg"},
-    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "carbs": 50, "sugar": 5, "fiber": 12, "diet": "Meso", "desc": "Запечени пасуљ са суџуком", "image": "slike/prebranac_sudzuk.jpg"},
-    "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "protein": 18, "carbs": 55, "sugar": 4, "fiber": 14, "diet": "Posno", "desc": "Традиционални посни пребранац", "image": "slike/prebranac.jpg"},
-    "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "protein": 8, "carbs": 12, "sugar": 6, "fiber": 4, "diet": "Vegetarijansko", "desc": "Парадајз, краставац, лук, паприка, сир", "image": "slike/sopska_salata.jpg"},
-    "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "protein": 3, "carbs": 15, "sugar": 8, "fiber": 5, "diet": "Posno", "desc": "Парадајз, краставац, лук, љута паприка", "image": "slike/srpska_salata.jpg"},
-    "Kupus salata 300g": {"category": "Salate", "price": 330.00, "calories": 80, "protein": 2, "carbs": 10, "sugar": 5, "fiber": 4, "diet": "Posno", "desc": "Свежа купус салата", "image": "slike/kupus_salata.jpg"},
-    "Ljuta paprika u ulju 1 komad": {"category": "Salate", "price": 150.00, "calories": 50, "protein": 0, "carbs": 3, "sugar": 1, "fiber": 1, "diet": "Posno", "desc": "Печена љута паприка", "image": "slike/ljuta_paprika.jpg"},
-    "Lepinja 1 komad": {"category": "Dodaci", "price": 120.00, "calories": 250, "protein": 7, "carbs": 50, "sugar": 2, "fiber": 2, "diet": "Posno", "desc": "Свежа домаћа лепиња", "image": "slike/lepinja.jpg"},
-    "Pomfrit 150g": {"category": "Dodaci", "price": 300.00, "calories": 450, "protein": 4, "carbs": 60, "sugar": 1, "fiber": 5, "diet": "Posno", "desc": "Хрскави пржени кромпирићи", "image": "slike/pomfrit.jpg"},
-    "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "carbs": 2, "sugar": 1, "fiber": 0, "diet": "Vegetarijansko", "desc": "Домаћи зрели кајмак", "image": "slike/kugla_kajmaka.jpg"}
+    "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "protein": 20, "carbs": 2, "sugar": 0, "fiber": 0, "diet": "Meso", "desc": "Domaći sušeni sudžuk", "image": "slike/suseni_sudzuk.jpg"},
+    "Sir 100g": {"category": "Hladno predjelo", "price": 340.00, "calories": 350, "protein": 20, "carbs": 3, "sugar": 3, "fiber": 0, "diet": "Vegetarijansko", "desc": "Domaći beli sir", "image": "slike/sir.jpg"},
+    "Mađarski juneći gulaš 450g": {"category": "Glavno jelo", "price": 1020.00, "calories": 600, "protein": 40, "carbs": 30, "sugar": 6, "fiber": 4, "diet": "Meso", "desc": "Bogati mađarski gulaš od junetine", "image": "slike/madjarski_gulas.jpg"},
+    "Ćufte u pireu 350g": {"category": "Glavno jelo", "price": 660.00, "calories": 550, "protein": 30, "carbs": 45, "sugar": 4, "fiber": 3, "diet": "Meso", "desc": "Domaće ćufte u kremastom pireu", "image": "slike/cufte_u_pireu.jpg"},
+    "Prebranac sa sudžukom 400g": {"category": "Glavno jelo", "price": 760.00, "calories": 650, "protein": 30, "carbs": 50, "sugar": 5, "fiber": 12, "diet": "Meso", "desc": "Zapečeni pasulj sa sudžukom", "image": "slike/prebranac_sudzuk.jpg"},
+    "Prebranac 300g": {"category": "Glavno jelo", "price": 590.00, "calories": 400, "protein": 18, "carbs": 55, "sugar": 4, "fiber": 14, "diet": "Posno", "desc": "Tradicionalni posni prebranac", "image": "slike/prebranac.jpg"},
+    "Šopska salata 350g": {"category": "Salate", "price": 460.00, "calories": 200, "protein": 8, "carbs": 12, "sugar": 6, "fiber": 4, "diet": "Vegetarijansko", "desc": "Paradajz, krastavac, luk, paprika, sir", "image": "slike/sopska_salata.jpg"},
+    "Srpska salata 300g": {"category": "Salate", "price": 410.00, "calories": 100, "protein": 3, "carbs": 15, "sugar": 8, "fiber": 5, "diet": "Posno", "desc": "Paradajz, krastavac, luk, ljuta paprika", "image": "slike/srpska_salata.jpg"},
+    "Kupus salata 300g": {"category": "Salate", "price": 330.00, "calories": 80, "protein": 2, "carbs": 10, "sugar": 5, "fiber": 4, "diet": "Posno", "desc": "Sveža kupus salata", "image": "slike/kupus_salata.jpg"},
+    "Ljuta paprika u ulju 1 komad": {"category": "Salate", "price": 150.00, "calories": 50, "protein": 0, "carbs": 3, "sugar": 1, "fiber": 1, "diet": "Posno", "desc": "Pečena ljuta paprika", "image": "slike/ljuta_paprika.jpg"},
+    "Lepinja 1 komad": {"category": "Dodaci", "price": 120.00, "calories": 250, "protein": 7, "carbs": 50, "sugar": 2, "fiber": 2, "diet": "Posno", "desc": "Sveža domaća lepinja", "image": "slike/lepinja.jpg"},
+    "Pomfrit 150g": {"category": "Dodaci", "price": 300.00, "calories": 450, "protein": 4, "carbs": 60, "sugar": 1, "fiber": 5, "diet": "Posno", "desc": "Hrskavi prženi krompirići", "image": "slike/pomfrit.jpg"},
+    "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "carbs": 2, "sugar": 1, "fiber": 0, "diet": "Vegetarijansko", "desc": "Domaći zreli kajmak", "image": "slike/kugla_kajmaka.jpg"}
 }
 
+# --- ЛОГИКА ЗА ПАМЕТНУ ПРЕТРАГУ (ФУЗИ) ---
+def ukloni_kvacice(tekst):
+    """Претвара српска слова у обична латинична (ć->c, š->s)"""
+    tekst = tekst.lower()
+    zamene = {'ć': 'c', 'č': 'c', 'š': 's', 'ž': 'z', 'đ': 'dj'}
+    for sr, lat in zamene.items():
+        tekst = tekst.replace(sr, lat)
+    return tekst
+
+def proveri_poklapanje(upit, naziv_jela):
+    """Проверава да ли се унос поклапа са јелом, толеришући грешке"""
+    upit_norm = ukloni_kvacice(upit).strip()
+    naziv_norm = ukloni_kvacice(naziv_jela)
+    
+    if not upit_norm:
+        return True
+        
+    # 1. Ако садржи тачан део речи (нпр. "pre" у "prebranac")
+    if upit_norm in naziv_norm:
+        return True
+        
+    # 2. Толеранција на грешке у куцању (нпр. "gukas" уместо "gulas")
+    reci_iz_назива = naziv_norm.split()
+    for rec in reci_iz_назива:
+        # SequenceMatcher враћа проценат сличности између две речи (0.0 до 1.0)
+        slicnost = difflib.SequenceMatcher(None, upit_norm, rec).ratio()
+        if slicnost >= 0.7:  # 70% сличности је довољно да опрости 1-2 слова грешке
+            return True
+            
+    return False
+
+# --- ФУНКЦИЈЕ ЗА БАЗУ ---
 def ucitaj_iz_baze():
     try:
         res = supabase.table("porudzbine").select("*").execute()
@@ -119,12 +139,7 @@ def ucitaj_iz_baze():
 
 def snimi_u_bazu(sto, podaci):
     provera = supabase.table("porudzbine").select("*").eq("sto", sto).execute()
-    nova_data = {
-        "sto": sto, 
-        "stavke": podaci.get("stavke", {}), 
-        "zove_konobara": podaci.get("zove_konobara", False),
-        "trazi_racun": podaci.get("trazi_racun", False)
-    }
+    nova_data = {"sto": sto, "stavke": podaci.get("stavke", {}), "zove_konobara": podaci.get("zove_konobara", False), "trazi_racun": podaci.get("trazi_racun", False)}
     if len(provera.data) > 0: supabase.table("porudzbine").update(nova_data).eq("sto", sto).execute()
     else: supabase.table("porudzbine").insert(nova_data).execute()
 
@@ -132,7 +147,7 @@ def obrisi_sto(sto):
     supabase.table("porudzbine").delete().eq("sto", sto).execute()
 
 def prikazi_sliku(putanja):
-    return putanja if os.path.exists(putanja) else "https://via.placeholder.com/600x350.png?text=Корзо"
+    return putanja if os.path.exists(putanja) else "https://via.placeholder.com/600x350.png?text=Korzo"
 
 # ==========================================
 # 3. КОНТРОЛНИ ПАНЕЛ ЗА КОНОБАРА
@@ -171,7 +186,7 @@ def prikazi_konobara():
     st.rerun()
 
 # ==========================================
-# 4. СТРАНИЦА ЗА ГОСТА (WOLT/GLOVO ДИЗАЈН)
+# 4. СТРАНИЦА ЗА ГОСТА
 # ==========================================
 def prikazi_gosta(sto):
     if "ekran" not in st.session_state:
@@ -184,9 +199,6 @@ def prikazi_gosta(sto):
         st.toast(st.session_state.ai_toast, icon="🛒")
         st.session_state.ai_toast = "" 
 
-    # ---------------------------------------------------------
-    # ЕКРАН 1: ГЛАВНИ МЕНИ + ФИЛТЕРИ
-    # ---------------------------------------------------------
     if st.session_state.ekran == "meni":
         broj_stavki = sum(moj_sto.get("stavke", {}).values())
         
@@ -213,9 +225,9 @@ def prikazi_gosta(sto):
 
         st.write("") 
         
-        # --- ФИЛТЕРИ И ПРЕТРАГА ---
-        with st.expander("🔍 Филтери и претрага"):
-            search_tekst = st.text_input("Претражи јело (нпр. 'ћевапи')", "")
+        # --- ФИЛТЕРИ И ПАМЕТНА ПРЕТРАГА ---
+        with st.expander("🔍 Филтери и претрага (куцај слободно)"):
+            search_tekst = st.text_input("Шта вам се једе данас?", "", placeholder="нпр. 'prebranac', 'cevapi', 'gulas'...")
             
             c_cena, c_ishrana = st.columns(2)
             with c_cena:
@@ -223,19 +235,22 @@ def prikazi_gosta(sto):
             with c_ishrana:
                 odabrana_ishrana = st.multiselect("Врста исхране", ["Meso", "Vegetarijansko", "Posno"])
         
+        # Примена Паметног Филтера
         filtriran_meni = {}
         for ime, info in menu_database.items():
-            if search_tekst.lower() not in ime.lower():
+            # 1. Паметно поклапање имена (опрашта грешке и квачице)
+            if not proveri_poklapanje(search_tekst, ime):
                 continue
+            # 2. Цена
             if info["price"] > max_cena:
                 continue
+            # 3. Исхрана
             if odabrana_ishrana and info["diet"] not in odabrana_ishrana:
                 continue
             filtriran_meni[ime] = info
 
-        # ОВО ЈЕ ИСПРАВЉЕНО (not уместо ne)
         if not filtriran_meni:
-            st.warning("Ниједно јело не одговара изабраним филтерима. Покушајте да проширите претрагу.")
+            st.warning("Ниједно јело не одговара уносу. Да ли сте мислили на нешто друго?")
         else:
             kategorije = sorted(list(set([info["category"] for info in filtriran_meni.values()])))
             tabs = st.tabs(kategorije)
@@ -334,7 +349,7 @@ def prikazi_gosta(sto):
                 except Exception as e: st.error(f"Грешка: {e}")
 
     # ---------------------------------------------------------
-    # ЕКРАН 2: КОРПА (ПРЕКО ЦЕЛОГ ЕКРАНА)
+    # ЕКРАН 2: КОРПА
     # ---------------------------------------------------------
     elif st.session_state.ekran == "korpa":
         if st.button("⬅️ Назад на мени"):
@@ -357,16 +372,12 @@ def prikazi_gosta(sto):
                     
                     with st.container(border=True):
                         c1, c2, c3 = st.columns([1, 4, 1])
-                        with c1:
-                            st.markdown(f"**{qty}x**")
-                        with c2:
-                            st.markdown(f"**{jelo}**<br><span style='color:gray;'>{cena:.2f} RSD</span>", unsafe_allow_html=True)
+                        with c1: st.markdown(f"**{qty}x**")
+                        with c2: st.markdown(f"**{jelo}**<br><span style='color:gray;'>{cena:.2f} RSD</span>", unsafe_allow_html=True)
                         with c3:
                             if st.button("🗑️", key=f"del_{jelo}"):
-                                if moj_sto["stavke"][jelo] > 1:
-                                    moj_sto["stavke"][jelo] -= 1
-                                else:
-                                    del moj_sto["stavke"][jelo]
+                                if moj_sto["stavke"][jelo] > 1: moj_sto["stavke"][jelo] -= 1
+                                else: del moj_sto["stavke"][jelo]
                                 snimi_u_bazu(sto, moj_sto)
                                 st.rerun()
             
@@ -386,10 +397,8 @@ def prikazi_gosta(sto):
 # 5. ГЛАВНИ РУТЕР
 # ==========================================
 params = st.query_params
-if "konobar" in params: 
-    prikazi_konobara()
-elif "sto" in params: 
-    prikazi_gosta(params["sto"])
+if "konobar" in params: prikazi_konobara()
+elif "sto" in params: prikazi_gosta(params["sto"])
 else:
     st.markdown("<h2 style='text-align: center;'>Добродошли у Корзо 🍽️</h2>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
