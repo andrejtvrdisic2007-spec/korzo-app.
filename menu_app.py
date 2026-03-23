@@ -4,7 +4,7 @@ import time
 import requests
 import re
 import difflib
-from st_keyup import st_keyup  # НОВА БИБЛИОТЕКА ЗА КУЦАЊЕ УЖИВО
+from st_keyup import st_keyup
 from supabase import create_client, Client
 
 # ==========================================
@@ -81,8 +81,8 @@ menu_database = {
     "Kajgana": {"category": "Doručak", "price": 350.00, "calories": 300, "protein": 20, "carbs": 2, "sugar": 1, "fiber": 0, "diet": "Vegetarijansko", "desc": "Domaća kajgana", "image": "slike/kajgana.jpg"},
     "Kačamak": {"category": "Doručak", "price": 300.00, "calories": 400, "protein": 8, "carbs": 55, "sugar": 2, "fiber": 3, "diet": "Vegetarijansko", "desc": "Tradicionalni domaći kačamak", "image": "slike/kacamak.jpg"},
     "Juneća čorba 350g": {"category": "Toplo predjelo", "price": 480.00, "calories": 250, "protein": 18, "carbs": 15, "sugar": 3, "fiber": 2, "diet": "Meso", "desc": "Domaća topla juneća čorba", "image": "slike/juneca_corba.jpg"},
-    "Juneće ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "protein": 45, "carbs": 10, "sugar": 2, "fiber": 1, "diet": "Meso", "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
-    "Juneći ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "protein": 50, "carbs": 5, "sugar": 1, "fiber": 0, "diet": "Meso", "desc": "Pravi domaći juneći ćevapi", "image": "slike/juneci_cevapi.jpg"},
+    "Juneће ćufte 350g": {"category": "Roštilj", "price": 990.00, "calories": 650, "protein": 45, "carbs": 10, "sugar": 2, "fiber": 1, "diet": "Meso", "desc": "Sočne juneće ćufte sa roštilja", "image": "slike/junece_cufte.jpg"},
+    "Juneći ćevapi 350g": {"category": "Roštilj", "price": 960.00, "calories": 700, "protein": 50, "carbs": 5, "sugar": 1, "fiber": 0, "diet": "Meso", "desc": "Pravi domaći juneћи ćevapi", "image": "slike/juneci_cevapi.jpg"},
     "Bagrem piletina 350g": {"category": "Roštilj", "price": 900.00, "calories": 500, "protein": 60, "carbs": 8, "sugar": 2, "fiber": 1, "diet": "Meso", "desc": "Specijalitet kuće od piletine", "image": "slike/bagrem_piletina.jpg"},
     "Goveđa pršuta 100g": {"category": "Hladno predjelo", "price": 900.00, "calories": 250, "protein": 30, "carbs": 0, "sugar": 0, "fiber": 0, "diet": "Meso", "desc": "Kvalitetna domaća goveđa pršuta", "image": "slike/govedja_prsuta.jpg"},
     "Sušeni sudžuk 100g": {"category": "Hladno predjelo", "price": 480.00, "calories": 400, "protein": 20, "carbs": 2, "sugar": 0, "fiber": 0, "diet": "Meso", "desc": "Domaći sušeni sudžuk", "image": "slike/suseni_sudzuk.jpg"},
@@ -100,7 +100,6 @@ menu_database = {
     "Kugla kajmaka 1 komad": {"category": "Dodaci", "price": 180.00, "calories": 200, "protein": 2, "carbs": 2, "sugar": 1, "fiber": 0, "diet": "Vegetarijansko", "desc": "Domaći zreli kajmak", "image": "slike/kugla_kajmaka.jpg"}
 }
 
-# --- ЛОГИКА ЗА ПАМЕТНУ ПРЕТРАГУ (ФУЗИ) ---
 def ukloni_kvacice(tekst):
     tekst = tekst.lower()
     zamene = {'ć': 'c', 'č': 'c', 'š': 's', 'ž': 'z', 'đ': 'dj'}
@@ -111,21 +110,14 @@ def ukloni_kvacice(tekst):
 def proveri_poklapanje(upit, naziv_jela):
     upit_norm = ukloni_kvacice(upit).strip()
     naziv_norm = ukloni_kvacice(naziv_jela)
-    
-    if not upit_norm:
-        return True
-        
-    if upit_norm in naziv_norm:
-        return True
-        
-    # Активирамо толеранцију на грешке тек кад гост укуца бар 3 слова
+    if not upit_norm: return True
+    if upit_norm in naziv_norm: return True
     if len(upit_norm) >= 3:
         reci_iz_naziva = naziv_norm.split()
         for rec in reci_iz_naziva:
             slicnost = difflib.SequenceMatcher(None, upit_norm, rec).ratio()
             if slicnost >= 0.7:  
                 return True
-                
     return False
 
 # --- ФУНКЦИЈЕ ЗА БАЗУ ---
@@ -137,7 +129,13 @@ def ucitaj_iz_baze():
 
 def snimi_u_bazu(sto, podaci):
     provera = supabase.table("porudzbine").select("*").eq("sto", sto).execute()
-    nova_data = {"sto": sto, "stavke": podaci.get("stavke", {}), "zove_konobara": podaci.get("zove_konobara", False), "trazi_racun": podaci.get("trazi_racun", False)}
+    nova_data = {
+        "sto": sto, 
+        "stavke": podaci.get("stavke", {}), 
+        "zove_konobara": podaci.get("zove_konobara", False), 
+        "trazi_racun": podaci.get("trazi_racun", False),
+        "konobar_stize": podaci.get("konobar_stize", False)
+    }
     if len(provera.data) > 0: supabase.table("porudzbine").update(nova_data).eq("sto", sto).execute()
     else: supabase.table("porudzbine").insert(nova_data).execute()
 
@@ -148,38 +146,124 @@ def prikazi_sliku(putanja):
     return putanja if os.path.exists(putanja) else "https://via.placeholder.com/600x350.png?text=Korzo"
 
 # ==========================================
-# 3. КОНТРОЛНИ ПАНЕЛ ЗА КОНОБАРА
+# 3. КОНТРОЛНИ ПАНЕЛ ЗА КОНОБАРА (ЛОГИН + МАПА)
 # ==========================================
 def prikazi_konobara():
     st.markdown("<h1 style='text-align: center; color: #E63946;'>👨‍🍳 Контролни Панел - Корзо</h1>", unsafe_allow_html=True)
-    st.info("🔄 Екран се аутоматски освежава сваких 10 секунди.")
-    st.divider()
     
+    # Табови: Мапа, Листа поруџбина, Статистика
+    tab_mapa, tab_stolovi, tab_statistika = st.tabs(["🗺️ Мапа Сале", "🍽️ Листа Поруџбина", "📊 Дневни Пазар"])
     baza = ucitaj_iz_baze()
-    if not baza: 
-        st.success("✨ Тренутно нема активних наруџбина.")
-    else:
+    aktivni_stolovi = {k: v for k, v in baza.items() if k != "admin_statistika"}
+    zvoni_alarm = False
+    
+    # ТАБ 1: ВИЗУЕЛНА МАПА СТОЛОВА
+    with tab_mapa:
+        st.markdown("### Тренутно стање у сали")
+        st.caption("🟢 Слободно | 🔵 Заузето (Једу) | 🚨 Хитна услуга")
+        
+        # Дефинишемо столове у сали (нпр. 6 столова за сада)
+        svi_stolovi = ["1", "2", "3", "4", "5", "6"]
         cols = st.columns(3)
-        for i, (sto, podaci) in enumerate(baza.items()):
+        
+        for i, sto_id in enumerate(svi_stolovi):
             with cols[i % 3]:
-                if podaci.get('zove_konobara'):
-                    st.error(f"🚨 СТО {sto} ЗОВЕ!")
-                elif podaci.get('trazi_racun'):
-                    st.warning(f"💳 СТО {sto} РАЧУН!")
-                else:
-                    st.info(f"📍 Сто {sto} - Активно")
+                podaci_stola = aktivni_stolovi.get(sto_id)
                 
-                with st.container(border=True):
-                    ukupno = 0
-                    for jelo, kolicina in podaci.get("stavke", {}).items():
-                        if jelo in menu_database:
-                            ukupno += menu_database[jelo]["price"] * kolicina
-                            st.write(f"🍽️ **{kolicina}x** {jelo}")
-                    st.divider()
-                    st.metric("За наплату:", f"{ukupno:.2f} RSD")
-                    if st.button("✅ Затвори (Наплаћено)", key=f"del_{sto}", use_container_width=True):
-                        obrisi_sto(sto)
-                        st.rerun()
+                if not podaci_stola:
+                    # Сто је слободан
+                    boja = "#2b9348" # Зелена
+                    st.markdown(f"<div style='background-color:{boja}; padding:15px; border-radius:15px; text-align:center; color:white; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'><h2>🟢 {sto_id}</h2><b>Слободан</b></div>", unsafe_allow_html=True)
+                elif podaci_stola.get('zove_konobara') or podaci_stola.get('trazi_racun'):
+                    # Сто тражи услугу
+                    boja = "#d90429" # Црвена
+                    razlog = "Рачун!" if podaci_stola.get('trazi_racun') else "Конобар!"
+                    st.markdown(f"<div style='background-color:{boja}; padding:15px; border-radius:15px; text-align:center; color:white; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'><h2>🚨 {sto_id}</h2><b>{razlog}</b></div>", unsafe_allow_html=True)
+                else:
+                    # Сто је заузет (само поруџбина)
+                    boja = "#0077b6" # Плава
+                    st.markdown(f"<div style='background-color:{boja}; padding:15px; border-radius:15px; text-align:center; color:white; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'><h2>🔵 {sto_id}</h2><b>Заузет</b></div>", unsafe_allow_html=True)
+
+    # ТАБ 2: ДЕТАЉИ ПОРУЏБИНА
+    with tab_stolovi:
+        if not aktivni_stolovi: 
+            st.success("✨ Тренутно нема активних поруџбина.")
+        else:
+            cols = st.columns(3)
+            i = 0
+            for sto, podaci in aktivni_stolovi.items():
+                with cols[i % 3]:
+                    # Провера да ли треба аларм
+                    if (podaci.get('zove_konobara') or podaci.get('trazi_racun')) and not podaci.get('konobar_stize'):
+                        zvoni_alarm = True
+                    
+                    with st.container(border=True):
+                        st.markdown(f"<h3 style='text-align: center;'>📍 Сто {sto}</h3>", unsafe_allow_html=True)
+                        
+                        if podaci.get('zove_konobara') or podaci.get('trazi_racun'):
+                            razlog = "💳 ТРАЖИ РАЧУН" if podaci.get('trazi_racun') else "🚨 ЗОВЕ ВАС"
+                            if podaci.get('konobar_stize'):
+                                st.success("🏃‍♂️ Кренули сте ка столу.")
+                            else:
+                                st.error(f"**{razlog}**")
+                                if st.button("✅ Прихвати позив", key=f"prihvati_{sto}", width='stretch'):
+                                    podaci["konobar_stize"] = True
+                                    snimi_u_bazu(sto, podaci)
+                                    st.rerun()
+                        else:
+                            st.info("🍽️ Активна поруџбина")
+                        
+                        ukupno = 0
+                        for jelo, kolicina in podaci.get("stavke", {}).items():
+                            if jelo in menu_database:
+                                ukupno += menu_database[jelo]["price"] * kolicina
+                                st.write(f"▪️ **{kolicina}x** {jelo}")
+                        
+                        st.divider()
+                        st.metric("За наплату:", f"{ukupno:.2f} RSD")
+                        
+                        if st.button("💰 Наплати и Затвори", key=f"del_{sto}", type="primary", width='stretch'):
+                            stat_podaci = baza.get("admin_statistika", {"sto": "admin_statistika", "stavke": {}})
+                            stat_podaci["stavke"]["_ukupno_zarada"] = stat_podaci.get("stavke", {}).get("_ukupno_zarada", 0) + ukupno
+                            for j, q in podaci.get("stavke", {}).items():
+                                stat_podaci["stavke"][j] = stat_podaci["stavke"].get(j, 0) + q
+                            snimi_u_bazu("admin_statistika", stat_podaci)
+                            obrisi_sto(sto)
+                            st.rerun()
+                i += 1
+
+    # ТАБ 3: ДНЕВНИ ПАЗАР
+    with tab_statistika:
+        stat_podaci = baza.get("admin_statistika", {"stavke": {}})
+        ukupno_zarada = stat_podaci.get("stavke", {}).get("_ukupno_zarada", 0)
+        
+        st.markdown(f"### 💰 Укупан пазар данас: **{ukupno_zarada:.2f} RSD**")
+        st.divider()
+        st.markdown("#### 🏆 Продата јела и пића:")
+        
+        prodato = {k: v for k, v in stat_podaci.get("stavke", {}).items() if k != "_ukupno_zarada"}
+        prodato_sortirano = sorted(prodato.items(), key=lambda x: x[1], reverse=True)
+        
+        if not prodato_sortirano:
+            st.info("Још увек нема наплаћених јела.")
+        else:
+            for jelo, kolicina in prodato_sortirano:
+                st.write(f"✔️ **{kolicina}x** {jelo}")
+        
+        st.write("")
+        if st.button("🗑️ Затвори смену (Ресетуј пазар)", type="primary"):
+            obrisi_sto("admin_statistika")
+            st.success("Пазар је успешно ресетован!")
+            time.sleep(1)
+            st.rerun()
+
+    # ЗВУЧНИ АЛАРМ
+    if zvoni_alarm:
+        st.components.v1.html(
+            '''<audio autoplay loop><source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg"></audio>''',
+            height=0, width=0
+        )
+            
     time.sleep(10)
     st.rerun()
 
@@ -191,7 +275,7 @@ def prikazi_gosta(sto):
         st.session_state.ekran = "meni"
     
     baza = ucitaj_iz_baze()
-    moj_sto = baza.get(sto, {"stavke": {}, "zove_konobara": False, "trazi_racun": False})
+    moj_sto = baza.get(sto, {"stavke": {}, "zove_konobara": False, "trazi_racun": False, "konobar_stize": False})
 
     if "ai_toast" in st.session_state and st.session_state.ai_toast:
         st.toast(st.session_state.ai_toast, icon="🛒")
@@ -205,45 +289,42 @@ def prikazi_gosta(sto):
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button(f"🛒 Корпа ({broj_stavki})", type="primary", use_container_width=True):
+            if st.button(f"🛒 Корпа ({broj_stavki})", type="primary", width='stretch'):
                 st.session_state.ekran = "korpa"
                 st.rerun()
         with col2:
-            if moj_sto["zove_konobara"]:
-                if st.button("❌ Откажи позив", type="secondary", use_container_width=True):
-                    moj_sto["zove_konobara"] = False
-                    snimi_u_bazu(sto, moj_sto)
-                    st.rerun()
+            if moj_sto["zove_konobara"] or moj_sto["trazi_racun"]:
+                if moj_sto.get("konobar_stize"):
+                    st.button("🏃‍♂️ Конобар стиже!", disabled=True, width='stretch')
+                else:
+                    if st.button("❌ Откажи позив", type="secondary", width='stretch'):
+                        moj_sto["zove_konobara"] = False
+                        moj_sto["trazi_racun"] = False
+                        snimi_u_bazu(sto, moj_sto)
+                        st.rerun()
             else:
-                if st.button("🙋‍♂️ Конобар", use_container_width=True):
+                if st.button("🙋‍♂️ Конобар", width='stretch'):
                     moj_sto["zove_konobara"] = True
+                    moj_sto["konobar_stize"] = False
                     snimi_u_bazu(sto, moj_sto)
                     st.toast("Конобар је позван!", icon="🔔")
                     st.rerun()
 
         st.write("") 
         
-        # --- ФИЛТЕРИ И ЖИВА ПРЕТРАГА ---
         with st.expander("🔍 Филтери и претрага (куцај слободно)"):
-            # Користимо st_keyup за уживо читање тастатуре са малом паузом (debounce) од 300ms да екран не трепери превише
             search_tekst = st_keyup("Шта вам се једе данас?", placeholder="нпр. 'prebranac', 'cevapi', 'gulas'...", debounce=300)
-            if not search_tekst:
-                search_tekst = ""
+            if not search_tekst: search_tekst = ""
             
             c_cena, c_ishrana = st.columns(2)
-            with c_cena:
-                max_cena = st.slider("Макс. цена (RSD)", 100, 2000, 2000, step=50)
-            with c_ishrana:
-                odabrana_ishrana = st.multiselect("Врста исхране", ["Meso", "Vegetarijansko", "Posno"])
+            with c_cena: max_cena = st.slider("Макс. цена (RSD)", 100, 2000, 2000, step=50)
+            with c_ishrana: odabrana_ishrana = st.multiselect("Врста исхране", ["Meso", "Vegetarijansko", "Posno"])
         
         filtriran_meni = {}
         for ime, info in menu_database.items():
-            if not proveri_poklapanje(search_tekst, ime):
-                continue
-            if info["price"] > max_cena:
-                continue
-            if odabrana_ishrana and info["diet"] not in odabrana_ishrana:
-                continue
+            if not proveri_poklapanje(search_tekst, ime): continue
+            if info["price"] > max_cena: continue
+            if odabrana_ishrana and info["diet"] not in odabrana_ishrana: continue
             filtriran_meni[ime] = info
 
         if not filtriran_meni:
@@ -268,10 +349,9 @@ def prikazi_gosta(sto):
                             st.markdown(f"<p style='color: gray; font-size: 14px; margin-top: 5px;'>{info['desc']}</p>", unsafe_allow_html=True)
                             
                             col_cena, col_dugme = st.columns([1, 1])
-                            with col_cena:
-                                st.markdown(f"<h4 style='color: #E63946; margin-top: 5px;'>{info['price']:.2f} RSD</h4>", unsafe_allow_html=True)
+                            with col_cena: st.markdown(f"<h4 style='color: #E63946; margin-top: 5px;'>{info['price']:.2f} RSD</h4>", unsafe_allow_html=True)
                             with col_dugme:
-                                if st.button("➕ Додај", key=f"add_{jelo}", use_container_width=True):
+                                if st.button("➕ Додај", key=f"add_{jelo}", width='stretch'):
                                     moj_sto["stavke"][jelo] = moj_sto["stavke"].get(jelo, 0) + 1
                                     snimi_u_bazu(sto, moj_sto)
                                     st.toast(f"Додато: {jelo}", icon="✅")
@@ -285,18 +365,14 @@ def prikazi_gosta(sto):
         st.markdown("### 🤖 АИ Асистент")
         st.caption("Питајте ме за препоруку или наручите храну преко мене!")
         
-        if "chat_history" not in st.session_state:
-            st.session_state.chat_history = []
-
+        if "chat_history" not in st.session_state: st.session_state.chat_history = []
         for message in st.session_state.chat_history:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+            with st.chat_message(message["role"]): st.markdown(message["content"])
 
         upit = st.chat_input("Напиши поруку...")
         if upit:
             st.session_state.chat_history.append({"role": "user", "content": upit})
-            with st.chat_message("user"):
-                st.markdown(upit)
+            with st.chat_message("user"): st.markdown(upit)
                 
             with st.chat_message("assistant"):
                 try:
@@ -315,7 +391,7 @@ def prikazi_gosta(sto):
                             url = f"https://generativelanguage.googleapis.com/v1beta/{radni_model}:generateContent?key={GEMINI_KEY}"
                             
                             sistemska_instrukcija = f"""Ти си конобар у Корзоу. Мени: {list(menu_database.keys())}.
-                            Ако гост тражи да наручи, МОРАШ користити тачне називе у формату [DODAJ: Име јела грамажа].
+                            Ако гост тражи наручивање, МОРАШ користити тачне називе у формату [DODAJ: Име јела грамажа].
                             Пример: [DODAJ: Bagrem piletina 350g]. Увек напиши и текст потврде."""
 
                             payload = {"systemInstruction": {"parts": [{"text": sistemska_instrukcija}]}, "contents": api_contents}
@@ -382,8 +458,9 @@ def prikazi_gosta(sto):
             st.markdown(f"<h3 style='text-align: right;'>Укупно: <span style='color:#E63946;'>{ukupno:.2f} RSD</span></h3>", unsafe_allow_html=True)
             
             st.write("")
-            if st.button("🧾 ЗАТРАЖИ РАЧУН И ПЛАТИ", type="primary", use_container_width=True):
+            if st.button("🧾 ЗАТРАЖИ РАЧУН И ПЛАТИ", type="primary", width='stretch'):
                 moj_sto["trazi_racun"] = True
+                moj_sto["konobar_stize"] = False
                 snimi_u_bazu(sto, moj_sto)
                 st.success("Конобар стиже са рачуном за Ваш сто!")
                 time.sleep(2)
@@ -391,23 +468,43 @@ def prikazi_gosta(sto):
                 st.rerun()
 
 # ==========================================
-# 5. ГЛАВНИ РУТЕР
+# 5. ГЛАВНИ РУТЕР (СА ЛОГИНОМ)
 # ==========================================
 params = st.query_params
-if "konobar" in params: prikazi_konobara()
-elif "sto" in params: prikazi_gosta(params["sto"])
+
+if "konobar" in params: 
+    # ЛОГИН ЗА КОНОБАРЕ
+    if not st.session_state.get("ulogovan", False):
+        st.markdown("<h2 style='text-align: center; margin-top:50px;'>🔒 Приступ за особље</h2>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.write("Унесите сигурносни ПИН код да бисте приступили контроли сале.")
+            pin = st.text_input("ПИН код:", type="password")
+            if st.button("Пријави се", type="primary", width='stretch'):
+                if pin == "1234":
+                    st.session_state.ulogovan = True
+                    st.rerun()
+                else:
+                    st.error("❌ Погрешан ПИН! Покушајте поново.")
+    else:
+        prikazi_konobara()
+        
+elif "sto" in params: 
+    prikazi_gosta(params["sto"])
 else:
     st.markdown("<h2 style='text-align: center;'>Добродошли у Корзо 🍽️</h2>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
         with st.container(border=True):
             st.markdown("### 📱 За Госте")
-            if st.button("Уђи као Сто 1", use_container_width=True):
+            if st.button("Уђи као Сто 1", width='stretch'):
                 st.query_params["sto"] = "1"
+                st.rerun()
+            if st.button("Уђи као Сто 2", width='stretch'):
+                st.query_params["sto"] = "2"
                 st.rerun()
     with col2:
         with st.container(border=True):
             st.markdown("### 👨‍🍳 За Особље")
-            if st.button("Отвори Контролни Панел", type="primary", use_container_width=True):
+            if st.button("Отвори Контролни Панел", type="primary", width='stretch'):
                 st.query_params["konobar"] = "true"
                 st.rerun()
