@@ -146,89 +146,112 @@ def prikazi_sliku(putanja):
     return putanja if os.path.exists(putanja) else "https://via.placeholder.com/600x350.png?text=Korzo"
 
 # ==========================================
-# 3. KONTROLNI PANEL ZA KONOBARA (LOGIN + MAPA)
+# 3. KONTROLNI PANEL ZA KONOBARA (MAPA + DETALJI)
 # ==========================================
 def prikazi_konobara():
-    st.markdown("<h1 style='text-align: center; color: #E63946;'>👨‍🍳 Kontrolni Panel - Korzo</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #E63946;'>👨‍🍳 Kontrolni Panel</h1>", unsafe_allow_html=True)
     
-    # Tabovi: Mapa, Lista narudžbi, Statistika
-    tab_mapa, tab_stolovi, tab_statistika = st.tabs(["🗺️ Mapa Sale", "🍽️ Lista Narudžbi", "📊 Dnevni Pazar"])
+    # Inicijalizacija odabranog stola
+    if "odabrani_sto" not in st.session_state:
+        st.session_state.odabrani_sto = None
+
+    # Sada imamo samo 2 glavna taba
+    tab_mapa, tab_statistika = st.tabs(["🗺️ Sala", "📊 Dnevni Pazar"])
+    
     baza = ucitaj_iz_baze()
     aktivni_stolovi = {k: v for k, v in baza.items() if k != "admin_statistika"}
     zvoni_alarm = False
     
-    # TAB 1: VIZUALNA MAPA STOLOVA
-    with tab_mapa:
-        st.markdown("### Trenutno stanje u sali")
-        st.caption("🟢 Slobodno | 🔵 Zauzeto (Jedu) | 🚨 Hitna usluga")
-        
-        # Definiramo stolove u sali (npr. 6 stolova)
-        svi_stolovi = ["1", "2", "3", "4", "5", "6"]
-        cols = st.columns(3)
-        
-        for i, sto_id in enumerate(svi_stolovi):
-            with cols[i % 3]:
-                podaci_stola = aktivni_stolovi.get(sto_id)
-                
-                if not podaci_stola:
-                    boja = "#2b9348" # Zelena
-                    st.markdown(f"<div style='background-color:{boja}; padding:15px; border-radius:15px; text-align:center; color:white; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'><h2>🟢 {sto_id}</h2><b>Slobodan</b></div>", unsafe_allow_html=True)
-                elif podaci_stola.get('zove_konobara') or podaci_stola.get('trazi_racun'):
-                    boja = "#d90429" # Crvena
-                    razlog = "Račun!" if podaci_stola.get('trazi_racun') else "Konobar!"
-                    st.markdown(f"<div style='background-color:{boja}; padding:15px; border-radius:15px; text-align:center; color:white; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'><h2>🚨 {sto_id}</h2><b>{razlog}</b></div>", unsafe_allow_html=True)
-                else:
-                    boja = "#0077b6" # Plava
-                    st.markdown(f"<div style='background-color:{boja}; padding:15px; border-radius:15px; text-align:center; color:white; margin-bottom:15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);'><h2>🔵 {sto_id}</h2><b>Zauzet</b></div>", unsafe_allow_html=True)
+    # Provera alarma na nivou cele sale
+    for s, p in aktivni_stolovi.items():
+        if (p.get('zove_konobara') or p.get('trazi_racun')) and not p.get('konobar_stize'):
+            zvoni_alarm = True
 
-    # TAB 2: DETALJI NARUDŽBI
-    with tab_stolovi:
-        if not aktivni_stolovi: 
-            st.success("✨ Trenutno nema aktivnih narudžbi.")
-        else:
-            cols = st.columns(3)
-            i = 0
-            for sto, podaci in aktivni_stolovi.items():
-                with cols[i % 3]:
-                    if (podaci.get('zove_konobara') or podaci.get('trazi_racun')) and not podaci.get('konobar_stize'):
-                        zvoni_alarm = True
+    # TAB 1: SALA (MAPA + ULAZ U STO)
+    with tab_mapa:
+        # Ako konobar nije odabrao nijedan sto, vidi mapu
+        if st.session_state.odabrani_sto is None:
+            st.markdown("### Mapa stolova")
+            st.caption("🟢 Slobodno | 🔵 Zauzeto (Jedu) | 🚨 Hitna usluga")
+            
+            svi_stolovi = ["1", "2", "3", "4", "5", "6"]
+            cols = st.columns(2) # 2 kolone da dugmad budu veća i lakša za kliknuti prstom
+            
+            for i, sto_id in enumerate(svi_stolovi):
+                with cols[i % 2]:
+                    podaci_stola = aktivni_stolovi.get(sto_id)
                     
                     with st.container(border=True):
-                        st.markdown(f"<h3 style='text-align: center;'>📍 Sto {sto}</h3>", unsafe_allow_html=True)
-                        
-                        if podaci.get('zove_konobara') or podaci.get('trazi_racun'):
-                            razlog = "💳 TRAŽI RAČUN" if podaci.get('trazi_racun') else "🚨 ZOVE VAS"
-                            if podaci.get('konobar_stize'):
-                                st.success("🏃‍♂️ Krenuli ste ka stolu.")
-                            else:
-                                st.error(f"**{razlog}**")
-                                if st.button("✅ Prihvati poziv", key=f"prihvati_{sto}", use_container_width=True):
-                                    podaci["konobar_stize"] = True
-                                    snimi_u_bazu(sto, podaci)
-                                    st.rerun()
+                        if not podaci_stola:
+                            st.markdown(f"<h3 style='text-align:center; color:#2b9348; margin-bottom:0;'>🟢 Sto {sto_id}</h3>", unsafe_allow_html=True)
+                            st.markdown("<p style='text-align:center; margin-bottom:10px; color:gray;'>Slobodan</p>", unsafe_allow_html=True)
+                            if st.button("Otvori", key=f"otvori_{sto_id}", use_container_width=True):
+                                st.session_state.odabrani_sto = sto_id
+                                st.rerun()
+                        elif podaci_stola.get('zove_konobara') or podaci_stola.get('trazi_racun'):
+                            razlog = "Račun!" if podaci_stola.get('trazi_racun') else "Konobar!"
+                            st.markdown(f"<h3 style='text-align:center; color:#d90429; margin-bottom:0;'>🚨 Sto {sto_id}</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<p style='text-align:center; margin-bottom:10px; font-weight:bold; color:#d90429;'>{razlog}</p>", unsafe_allow_html=True)
+                            if st.button("Otvori", key=f"otvori_{sto_id}", use_container_width=True, type="primary"):
+                                st.session_state.odabrani_sto = sto_id
+                                st.rerun()
                         else:
-                            st.info("🍽️ Aktivna narudžba")
-                        
-                        ukupno = 0
-                        for jelo, kolicina in podaci.get("stavke", {}).items():
-                            if jelo in menu_database:
-                                ukupno += menu_database[jelo]["price"] * kolicina
-                                st.write(f"▪️ **{kolicina}x** {jelo}")
-                        
-                        st.divider()
-                        st.metric("Za naplatu:", f"{ukupno:.2f} RSD")
-                        
-                        if st.button("💰 Naplati i Zatvori", key=f"del_{sto}", type="primary", use_container_width=True):
-                            stat_podaci = baza.get("admin_statistika", {"sto": "admin_statistika", "stavke": {}})
-                            stat_podaci["stavke"]["_ukupno_zarada"] = stat_podaci.get("stavke", {}).get("_ukupno_zarada", 0) + ukupno
-                            for j, q in podaci.get("stavke", {}).items():
-                                stat_podaci["stavke"][j] = stat_podaci["stavke"].get(j, 0) + q
-                            snimi_u_bazu("admin_statistika", stat_podaci)
-                            obrisi_sto(sto)
-                            st.rerun()
-                i += 1
+                            st.markdown(f"<h3 style='text-align:center; color:#0077b6; margin-bottom:0;'>🔵 Sto {sto_id}</h3>", unsafe_allow_html=True)
+                            st.markdown("<p style='text-align:center; margin-bottom:10px; color:gray;'>Zauzet</p>", unsafe_allow_html=True)
+                            if st.button("Otvori", key=f"otvori_{sto_id}", use_container_width=True):
+                                st.session_state.odabrani_sto = sto_id
+                                st.rerun()
+        
+        # Ako konobar JESTE odabrao sto, vidi samo narudžbu za taj sto
+        else:
+            sto = st.session_state.odabrani_sto
+            
+            if st.button("⬅️ Nazad na mapu", use_container_width=True):
+                st.session_state.odabrani_sto = None
+                st.rerun()
+            
+            podaci = aktivni_stolovi.get(sto)
+            st.markdown(f"<h2 style='text-align: center;'>📍 Detalji za Sto {sto}</h2>", unsafe_allow_html=True)
+            st.divider()
 
-    # TAB 3: DNEVNI PAZAR
+            if not podaci:
+                st.info("Ovaj sto je trenutno prazan. Gosti još nisu ništa naručili.")
+            else:
+                if podaci.get('zove_konobara') or podaci.get('trazi_racun'):
+                    razlog = "💳 TRAŽI RAČUN" if podaci.get('trazi_racun') else "🚨 ZOVE VAS"
+                    if podaci.get('konobar_stize'):
+                        st.success("🏃‍♂️ Krenuli ste ka stolu.")
+                    else:
+                        st.error(f"**{razlog}**")
+                        if st.button("✅ Prihvati poziv", key=f"prihvati_detalji_{sto}", use_container_width=True):
+                            podaci["konobar_stize"] = True
+                            snimi_u_bazu(sto, podaci)
+                            st.rerun()
+                else:
+                    st.info("🍽️ Aktivna narudžba")
+                
+                ukupno = 0
+                with st.container(border=True):
+                    for jelo, kolicina in podaci.get("stavke", {}).items():
+                        if jelo in menu_database:
+                            ukupno += menu_database[jelo]["price"] * kolicina
+                            st.write(f"▪️ **{kolicina}x** {jelo}")
+                
+                st.divider()
+                st.metric("Za naplatu:", f"{ukupno:.2f} RSD")
+                
+                if st.button("💰 Naplati i Zatvori sto", type="primary", use_container_width=True):
+                    stat_podaci = baza.get("admin_statistika", {"sto": "admin_statistika", "stavke": {}})
+                    stat_podaci["stavke"]["_ukupno_zarada"] = stat_podaci.get("stavke", {}).get("_ukupno_zarada", 0) + ukupno
+                    for j, q in podaci.get("stavke", {}).items():
+                        stat_podaci["stavke"][j] = stat_podaci["stavke"].get(j, 0) + q
+                    snimi_u_bazu("admin_statistika", stat_podaci)
+                    
+                    obrisi_sto(sto)
+                    st.session_state.odabrani_sto = None # Vraća konobara na mapu
+                    st.rerun()
+
+    # TAB 2: DNEVNI PAZAR
     with tab_statistika:
         stat_podaci = baza.get("admin_statistika", {"stavke": {}})
         ukupno_zarada = stat_podaci.get("stavke", {}).get("_ukupno_zarada", 0)
@@ -421,7 +444,7 @@ def prikazi_gosta(sto):
     # EKRAN 2: KORPA
     # ---------------------------------------------------------
     elif st.session_state.ekran == "korpa":
-        if st.button("⬅️ Nazad na meni"):
+        if st.button("⬅️ Nazad na meni", use_container_width=True):
             st.session_state.ekran = "meni"
             st.rerun()
             
